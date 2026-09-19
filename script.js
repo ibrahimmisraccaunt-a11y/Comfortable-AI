@@ -52,11 +52,21 @@ function cleanText(text){
 }
 function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null,talkMode:false})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
 }
-function save(){state.chats.forEach(c=>{c.name=cleanText(c.name||"Новый чат")||"Новый чат";c.messages=(Array.isArray(c.messages)?c.messages:[])
-  .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
-  .filter(([,text])=>text)
-  .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.");
-});state.assistantName=cleanText(state.assistantName||defaultState.assistantName);localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function save(){
+  try{
+    state.chats.forEach(c=>{
+      c.name=cleanText(c.name||"Новый чат")||"Новый чат";
+      c.messages=(Array.isArray(c.messages)?c.messages:[])
+        .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
+        .filter(([,text])=>text)
+        .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.");
+    });
+    state.assistantName=cleanText(state.assistantName||defaultState.assistantName);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  }catch(error){
+    console.warn("Не удалось сохранить данные:",error);
+  }
+}
 function activeChat(){return state.chats.find(c=>c.id===state.activeChatId)||state.chats[0]}
 function render(){
   const chat=activeChat();
@@ -135,7 +145,21 @@ function conversationReply(text){
 
 function ordinaryReply(text){ const x=normalize(text); if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;save();return greetingReply();} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return greetingReply(); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode&&conversationReply(text))return; return addMessage("assistant","Чем могу помочь?");
 }
-composer.onsubmit=e=>{e.preventDefault();const text=cleanText(input.value);if(!text)return;addMessage("user",text,false);input.value="";setTimeout(()=>ordinaryReply(text),180)};
+composer.onsubmit=e=>{
+  e.preventDefault();
+  const text=cleanText(input.value);
+  if(!text)return;
+  addMessage("user",text,false);
+  input.value="";
+  setTimeout(()=>{
+    try{
+      ordinaryReply(text);
+    }catch(error){
+      console.error(error);
+      addMessage("assistant","Произошла ошибка. Попробуй отправить сообщение ещё раз.",false);
+    }
+  },180);
+};
 $("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,talkMode:false};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
 $("renameChatButton").onclick=()=>{const name=prompt("Название чата:",activeChat().name);if(name&&name.trim()){activeChat().name=name.trim();save();render()}};
 $("nameButton").onclick=()=>{const name=prompt("Как назвать помощника?",state.assistantName);if(name&&name.trim()){state.assistantName=name.trim();save();render();addMessage("assistant","Теперь я буду называться "+state.assistantName+" ")}};
