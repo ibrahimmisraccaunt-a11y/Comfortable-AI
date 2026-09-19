@@ -1,4 +1,4 @@
-const STORAGE_KEY="comfortable-ai-v3";
+const STORAGE_KEY="comfortable-ai-v4";
 const DEFAULT_BG="lavender";
 const riddles=[
 {q:"Что можно увидеть с закрытыми глазами?",a:["сон","сновидение"],h:["Это бывает ночью.","Оно приходит, когда человек спит."]},
@@ -19,7 +19,7 @@ pink:"linear-gradient(135deg,#ffe0f1 0%,#ffd7ff 48%,#e5dcff 100%)",
 sky:"linear-gradient(135deg,#e6f4ff 0%,#dff1ff 48%,#f5efff 100%)"
 };
 const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
-const savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
+const savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v3")||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
 let state=migrateState(JSON.parse(savedData||"null"))||defaultState;
 if(!state.activeChatId)state.activeChatId=state.chats[0].id;
 state.assistantName=cleanText(state.assistantName);
