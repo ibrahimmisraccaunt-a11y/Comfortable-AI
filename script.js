@@ -98,96 +98,82 @@ function pickConversationReply(options,text){
 
 function conversationReply(text){
   const x=normalize(text);
+  const reactions=[
+    "Круто!",
+    "Здорово!",
+    "Интересно!",
+    "О, это классно!",
+    "Звучит здорово!",
+    "Вот это интересно!"
+  ];
+  const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
 
-  if(x.includes("два попуга")||x.includes("две попуга")||x.includes("попуга")){
-    return pickConversationReply([
-      "Круто! Два попугая — это уже целая маленькая команда. Как их зовут? И как у тебя сейчас вообще с учёбой, всё нормально?",
-      "Здорово! Два попугая — это интересно. Они дружат между собой? И что у тебя сегодня было в школе или на учёбе?",
-      "Классно! Расскажешь, какой у них характер? А как у тебя самой дела в последнее время — учёба не слишком загружает?"
-    ],text);
+  if(x.includes("попуга")) {
+    return addMessage("assistant",pick(reactions)+" Два попугая — это здорово. Как их зовут и какой у них характер?");
+  }
+  if(x.includes("корелл")||x.includes("волнист")) {
+    return addMessage("assistant",pick(reactions)+" А как зовут твою птицу? Она любит сидеть на руках и общаться?");
+  }
+  if(x.includes("кот")||x.includes("кошк")) {
+    return addMessage("assistant",pick(reactions)+" А как зовут твою кошку или кота? Что он больше всего любит делать?");
+  }
+  if(x.includes("собак")||x.includes("пёс")||x.includes("пес")) {
+    return addMessage("assistant",pick(reactions)+" А как зовут твою собаку? Она больше любит играть или гулять?");
+  }
+  if(x.includes("лошад")||x.includes("кон")) {
+    return addMessage("assistant",pick(reactions)+" А как её зовут? Ты часто проводишь с ней время?");
+  }
+  if(x.includes("семь")||x.includes("мама")||x.includes("папа")||x.includes("сест")||x.includes("брат")) {
+    return addMessage("assistant",pick(reactions)+" А что вы обычно любите делать вместе дома?");
+  }
+  if(x.includes("школ")||x.includes("учеб")||x.includes("урок")||x.includes("учусь")) {
+    return addMessage("assistant",pick(reactions)+" А какой предмет тебе сейчас нравится больше всего?");
+  }
+  if(x.includes("домашн")||x.includes("домашку")) {
+    return addMessage("assistant",pick(reactions)+" А какой урок тебе обычно интереснее всего делать?");
+  }
+  if(x.includes("друг")||x.includes("подруг")) {
+    return addMessage("assistant",pick(reactions)+" А что вы обычно любите делать вместе?");
+  }
+  if(x.includes("хобби")||x.includes("увлека")||x.includes("люблю")||x.includes("нравится")) {
+    return addMessage("assistant",pick(reactions)+" А ты давно этим занимаешься? Что в этом тебе нравится больше всего?");
+  }
+  if(x.includes("сегодня")||x.includes("день")) {
+    return addMessage("assistant",pick(reactions)+" А что сегодня у тебя было самым интересным?");
+  }
+  if(x.includes("вчера")||x.includes("позавчера")) {
+    return addMessage("assistant",pick(reactions)+" А что тебе больше всего запомнилось?");
+  }
+  if(x.includes("выходн")||x.includes("каникул")) {
+    return addMessage("assistant",pick(reactions)+" А чем тебе нравится заниматься в свободное время?");
+  }
+  if(x.includes("план")||x.includes("хочу")) {
+    return addMessage("assistant",pick(reactions)+" А что тебе хотелось бы попробовать или сделать в ближайшее время?");
+  }
+  if(x.includes("готов")||x.includes("приготов")||x.includes("печ")) {
+    return addMessage("assistant",pick(reactions)+" А какое блюдо ты любишь готовить больше всего?");
+  }
+  if(x.includes("рис")||x.includes("вяз")||x.includes("шить")||x.includes("твор")) {
+    return addMessage("assistant",pick(reactions)+" А что тебе больше всего нравится создавать?");
+  }
+  if(x.includes("куран")||x.includes("араб")) {
+    return addMessage("assistant",pick(reactions)+" А что тебе сейчас интереснее всего узнавать на занятиях?");
+  }
+  if(x.match(/\bу меня (есть|два|две|один|одна|много)\b/)) {
+    return addMessage("assistant",pick(reactions)+" Расскажешь немного подробнее? Как это появилось у тебя и что тебе в этом нравится?");
   }
 
-  if(x.includes("корелл")||x.includes("волнист")){
-    return pickConversationReply([
-      "Классно! А как зовут твою птицу и что она любит делать? Кстати, как у тебя сейчас с учёбой?",
-      "Здорово! Она ручная или пока привыкает к тебе? А какой предмет тебе сейчас нравится больше всего?",
-      "Интересно! Она больше любит играть, разговаривать или просто сидеть рядом? И как у тебя вообще проходит день?"
-    ],text);
-  }
-
-  if(x.includes("кот")||x.includes("кошк")){
-    return pickConversationReply([
-      "Круто! А как зовут твоего кота или кошку? И какой у него характер? Как у тебя вообще дела сегодня?",
-      "Здорово! Он больше спокойный или настоящий непоседа? А как у тебя сейчас настроение?",
-      "О, интересно! Что он обычно делает смешного? И как у тебя проходит учёба в последнее время?"
-    ],text);
-  }
-
-  if(x.includes("собак")||x.includes("пёс")||x.includes("пес")){
-    return pickConversationReply([
-      "Круто! А как зовут твою собаку и что она больше всего любит? Как у тебя самой сейчас дела?",
-      "Здорово! Она больше любит гулять или играть дома? А как у тебя в последнее время с учёбой?",
-      "Классно! Расскажешь, какая у неё привычка самая забавная? Что у тебя сегодня ещё интересного произошло?"
-    ],text);
-  }
-
-  if(x.includes("лошад")||x.includes("кон")){
-    return pickConversationReply([
-      "Ух ты, это интересно! Как её зовут и какой у неё характер? А как у тебя самой сейчас дела?",
-      "Классно! Ты часто проводишь с ней время? И как у тебя сейчас проходит учёба?",
-      "Здорово! Что тебе больше всего нравится делать рядом с лошадью? А что сегодня было самым интересным?"
-    ],text);
-  }
-
-  if(x.includes("я люблю ")||x.includes("мне нравится ")||x.includes("обожаю ")){
-    return pickConversationReply([
-      "Круто! Что тебе в этом нравится больше всего? Ты давно этим увлекаешься?",
-      "Здорово! А как ты вообще к этому пришла? И чем ты ещё любишь заниматься в свободное время?",
-      "Интересно! Что в этом тебя больше всего радует? Как у тебя сейчас вообще дела?"
-    ],text);
-  }
-
-  if(x.includes("я занимаюсь ")||x.includes("я увлекаюсь ")){
-    return pickConversationReply([
-      "Классно! А что тебе больше всего нравится в этом занятии? Ты давно этим занимаешься?",
-      "Здорово! А как ты начала этим заниматься? И получается ли находить на это время вместе с учёбой?",
-      "Интересно! Есть что-нибудь, чему ты сейчас особенно хочешь научиться?"
-    ],text);
-  }
-
-  if(x.includes("я учусь ")||x.includes("в школе")||x.includes("мой класс")||x.includes("учёб")||x.includes("учеб")){
-    return pickConversationReply([
-      "Поняла. А какой предмет тебе сейчас нравится больше всего? И что в нём тебе интересно?",
-      "Ага, рассказывай. Как у тебя вообще в школе дела в последнее время?",
-      "Интересно! Есть предмет, который тебе сейчас особенно легко или, наоборот, сложно даётся?"
-    ],text);
-  }
-
-  if(x.includes("сегодня ")||x.includes("сегодня я ")){
-    return pickConversationReply([
-      "Звучит интересно. А что сегодня было самым приятным или запомнившимся?",
-      "Классно. А день в целом прошёл хорошо или было что-нибудь неожиданное?",
-      "Рассказывай дальше. А что сегодня подняло тебе настроение?"
-    ],text);
-  }
-
-  if(x.includes("моя семья")||x.includes("у меня семья")||x.includes("сестра")||x.includes("брат")||x.includes("мама")||x.includes("папа")){
-    return pickConversationReply([
-      "Понимаю. А вы часто проводите время вместе?",
-      "Здорово. А что вы обычно любите делать вместе?",
-      "Интересно! А кто в вашей семье самый разговорчивый?"
-    ],text);
-  }
-
-  if(x.match(/\bу меня (есть|двое|два|две|один|одна|много)\b/) && !x.includes("бол") && !x.includes("температур")){
-    return pickConversationReply([
-      "Круто! Расскажешь немного подробнее? Что тебе в этом нравится больше всего?",
-      "Здорово! А как это появилось у тебя? Ты давно этим занимаешься или это совсем недавно?",
-      "Интересно! А что в этом самое весёлое или необычное?"
-    ],text);
-  }
-
-  return false;
+  const generalQuestions=[
+    "А как у тебя сегодня дела?",
+    "А что сегодня тебя порадовало?",
+    "А чем тебе сейчас нравится заниматься?",
+    "А как у тебя учёба в школе?",
+    "А какой предмет тебе сейчас нравится?",
+    "А есть занятие, которым тебе особенно нравится заниматься?",
+    "А что тебе обычно нравится делать после школы?",
+    "А что тебе хотелось бы попробовать в ближайшее время?"
+  ];
+  return addMessage("assistant",pick(reactions)+" "+pick(generalQuestions));
 }
 
 function ordinaryReply(text){ const x=normalize(text); if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Конечно О чём хочешь поговорить?"); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум"))return addMessage("assistant","Уа алейкум ассалям уа рахматуллахи уа баракатух! "); if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return addMessage("assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(conversationReply(text))return; return addMessage("assistant","Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит. ");
