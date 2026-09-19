@@ -50,7 +50,7 @@ function cleanText(text){
 }
 function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
 }
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function save(){state.chats.forEach(c=>{c.name=cleanText(c.name||"Новый чат")||"Новый чат";c.messages=(Array.isArray(c.messages)?c.messages:[]).map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)]).filter(([,text])=>text)});state.assistantName=cleanText(state.assistantName||defaultState.assistantName);localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
 function activeChat(){return state.chats.find(c=>c.id===state.activeChatId)||state.chats[0]}
 function render(){
   const chat=activeChat();
