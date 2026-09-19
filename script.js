@@ -33,6 +33,8 @@ state.chats.forEach(chat=>{
 });
 save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
+let lastSubmittedText="";
+let lastSubmittedAt=0;
 function cleanText(text){
   return Array.from(String(text??""))
     .filter(ch=>{
@@ -99,7 +101,7 @@ function render(){
 }
 function applyBackground(){ if(state.backgroundType==="image"){document.body.style.backgroundImage="url(\""+state.backgroundValue+"\")";document.body.style.backgroundColor="#f4f0ff"} else document.body.style.backgroundImage=backgroundPresets[state.backgroundValue]||backgroundPresets[DEFAULT_BG];
 }
-function addMessage(role,text,speak=true){text=cleanText(text);activeChat().messages.push([role,text]);save();render();if(role==="assistant"&&speak)speakText(text)}
+function addMessage(role,text,speak=true){text=cleanText(text);const chat=activeChat();const last=chat.messages[chat.messages.length-1];if(role==="assistant"&&last&&last[0]==="assistant"&&last[1]===text)return;chat.messages.push([role,text]);save();render();if(role==="assistant"&&speak)speakText(text)}
 function normalize(text){return text.toLowerCase().replace(/ё/g,"е").trim()}
 function setRiddle(){const chat=activeChat();if(chat.riddle&&chat.riddle.stage==="active")return;const index=Math.floor(Math.random()*riddles.length);chat.riddle={index:index,stage:"active",hintCount:0};addMessage("assistant"," "+riddles[index].q)}
 function currentRiddle(){const r=activeChat().riddle;return r&&r.stage==="active"?riddles[r.index]:null}
@@ -149,6 +151,10 @@ composer.onsubmit=e=>{
   e.preventDefault();
   const text=cleanText(input.value);
   if(!text)return;
+  const now=Date.now();
+  if(text===lastSubmittedText && now-lastSubmittedAt<800)return;
+  lastSubmittedText=text;
+  lastSubmittedAt=now;
   addMessage("user",text,false);
   input.value="";
   setTimeout(()=>{
