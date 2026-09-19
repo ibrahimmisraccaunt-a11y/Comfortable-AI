@@ -18,7 +18,7 @@ mint:"linear-gradient(135deg,#dcffe9 0%,#d3fff6 50%,#e7f4ff 100%)",
 pink:"linear-gradient(135deg,#ffe0f1 0%,#ffd7ff 48%,#e5dcff 100%)",
 sky:"linear-gradient(135deg,#e6f4ff 0%,#dff1ff 48%,#f5efff 100%)"
 };
-const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,talkMode:false}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
+const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,talkMode:false,talkQuestionHistory:[]}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
 const savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v3")||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
 let state=migrateState(JSON.parse(savedData||"null"))||defaultState;
 if(!state.activeChatId)state.activeChatId=state.chats[0].id;
@@ -52,7 +52,7 @@ function cleanText(text){
     .replace(/\\s{2,}/g," ")
     .trim();
 }
-function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null,talkMode:false})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
+function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null,talkMode:false,talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory:[]})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
 }
 function save(){
   try{
@@ -114,35 +114,132 @@ function pickConversationReply(options,text){
   return addMessage("assistant",options[n%options.length]);
 }
 
+function askTalkQuestion(chat, options){
+  const history=Array.isArray(chat.talkQuestionHistory)?chat.talkQuestionHistory:[];
+  const available=options.filter(q=>!history.includes(q));
+  const pool=available.length?available:options;
+  const question=pool[Math.floor(Math.random()*pool.length)];
+  chat.talkQuestionHistory=[...history,question].slice(-6);
+  save();
+  return question;
+}
 function conversationReply(text){
   const x=normalize(text);
-  const questions=[
-    "Как проходит учёба в школе?",
-    "Какой предмет тебе нравится больше всего?",
+  const chat=activeChat();
+
+  if(x.includes("попуга")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Как зовут твоих попугаев?",
+      "Какой у них характер?",
+      "Они любят общаться с тобой?",
+      "Давно они у тебя?"
+    ]));
+  }
+  if(x.includes("корелл")||x.includes("волнист")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Как зовут твою птицу?",
+      "Какой у неё характер?",
+      "Что она больше всего любит делать?",
+      "Она ручная?"
+    ]));
+  }
+  if(x.includes("кот")||x.includes("кошк")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Как зовут твою кошку или кота?",
+      "Какой у него характер?",
+      "Что он больше всего любит делать?",
+      "Давно он у тебя?"
+    ]));
+  }
+  if(x.includes("собак")||x.includes("пёс")||x.includes("пес")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Как зовут твою собаку?",
+      "Какой у неё характер?",
+      "Она больше любит играть или гулять?",
+      "Давно она у тебя?"
+    ]));
+  }
+  if(x.includes("лошад")||x.includes("кон")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Как её зовут?",
+      "Какой у неё характер?",
+      "Ты часто проводишь с ней время?",
+      "Что ты больше всего любишь делать вместе с ней?"
+    ]));
+  }
+  if(x.includes("школ")||x.includes("учеб")||x.includes("урок")||x.includes("учусь")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Как проходит твоя учёба?",
+      "Какой предмет тебе нравится больше всего?",
+      "Какой урок тебе обычно самый интересный?",
+      "Что тебе больше всего нравится в школе?"
+    ]));
+  }
+  if(x.includes("друг")||x.includes("подруг")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Что вы обычно любите делать вместе?",
+      "Давно вы дружите?",
+      "О чём вам нравится разговаривать?",
+      "Что вам вместе бывает особенно весело делать?"
+    ]));
+  }
+  if(x.includes("хобби")||x.includes("увлека")||x.includes("люблю")||x.includes("нравится")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Давно тебе это нравится?",
+      "Что тебе в этом нравится больше всего?",
+      "Как часто ты этим занимаешься?",
+      "Как ты впервые этим заинтересовалась?"
+    ]));
+  }
+  if(x.includes("сегодня")||x.includes("день")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Что сегодня было самым интересным?",
+      "Что сегодня тебя больше всего порадовало?",
+      "Как прошёл твой день?",
+      "Что тебе сегодня особенно запомнилось?"
+    ]));
+  }
+  if(x.includes("вчера")||x.includes("позавчера")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Что тебе больше всего запомнилось?",
+      "Что было самым интересным?",
+      "Что тебе тогда особенно понравилось?",
+      "Как у тебя тогда прошёл день?"
+    ]));
+  }
+  if(x.includes("выходн")||x.includes("каникул")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Чем тебе нравится заниматься в свободное время?",
+      "Что ты обычно делаешь на выходных?",
+      "Что тебе хотелось бы сделать на каникулах?",
+      "Как ты любишь проводить свободный день?"
+    ]));
+  }
+  if(x.includes("готов")||x.includes("приготов")||x.includes("печ")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Какое блюдо тебе больше всего нравится готовить?",
+      "Что тебе нравится готовить чаще всего?",
+      "Какое блюдо у тебя получается особенно хорошо?",
+      "Ты давно любишь готовить?"
+    ]));
+  }
+  if(x.includes("рис")||x.includes("вяз")||x.includes("шить")||x.includes("твор")){
+    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+      "Что тебе больше всего нравится создавать?",
+      "Давно ты этим занимаешься?",
+      "Что тебе нравится делать чаще всего?",
+      "Откуда ты научилась этому?"
+    ]));
+  }
+
+  return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    "Как проходит твоя учёба?",
+    "Чем тебе сейчас нравится заниматься?",
     "Что тебе обычно нравится делать после школы?",
-    "Чем тебе сейчас особенно нравится заниматься?",
     "Как у тебя сегодня прошёл день?",
-    "Что тебе больше всего нравится в этом?",
-    "Давно ты этим занимаешься?",
-    "Что тебе хотелось бы попробовать в ближайшее время?"
-  ];
-  const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-
-  if(x.includes("попуга"))return addMessage("assistant","Круто! Как зовут твоих попугаев и какой у них характер?");
-  if(x.includes("корелл")||x.includes("волнист"))return addMessage("assistant","Круто! Как зовут твою птицу и что она любит делать?");
-  if(x.includes("кот")||x.includes("кошк"))return addMessage("assistant","Круто! Как зовут твою кошку или кота и какой у него характер?");
-  if(x.includes("собак")||x.includes("пёс")||x.includes("пес"))return addMessage("assistant","Круто! Как зовут твою собаку и что она больше всего любит?");
-  if(x.includes("лошад")||x.includes("кон"))return addMessage("assistant","Круто! Как её зовут и ты часто проводишь с ней время?");
-  if(x.includes("школ")||x.includes("учеб")||x.includes("урок")||x.includes("учусь"))return addMessage("assistant","Круто! Как проходит у тебя учёба в школе?");
-  if(x.includes("друг")||x.includes("подруг"))return addMessage("assistant","Круто! Что вы обычно любите делать вместе?");
-  if(x.includes("хобби")||x.includes("увлека")||x.includes("люблю")||x.includes("нравится"))return addMessage("assistant","Круто! А как давно тебе это нравится?");
-  if(x.includes("сегодня")||x.includes("день"))return addMessage("assistant","Круто! А что сегодня у тебя было самым интересным?");
-  if(x.includes("вчера")||x.includes("позавчера"))return addMessage("assistant","Круто! А что тебе больше всего запомнилось?");
-  if(x.includes("выходн")||x.includes("каникул"))return addMessage("assistant","Круто! А чем тебе нравится заниматься в свободное время?");
-  if(x.includes("готов")||x.includes("приготов")||x.includes("печ"))return addMessage("assistant","Круто! Какое блюдо тебе больше всего нравится готовить?");
-  if(x.includes("рис")||x.includes("вяз")||x.includes("шить")||x.includes("твор"))return addMessage("assistant","Круто! А что тебе больше всего нравится создавать?");
-
-  return addMessage("assistant","Круто! "+pick(questions));
+    "Есть ли у тебя любимое занятие?",
+    "Что тебе сейчас особенно интересно?"
+  ]));
 }
 
 function ordinaryReply(text){ const x=normalize(text); if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;save();return greetingReply();} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return greetingReply(); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant","Чем могу помочь?");
@@ -166,7 +263,7 @@ composer.onsubmit=e=>{
     }
   },180);
 };
-$("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,talkMode:false};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
+$("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,talkMode:false,talkQuestionHistory:[]};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
 $("renameChatButton").onclick=()=>{const name=prompt("Название чата:",activeChat().name);if(name&&name.trim()){activeChat().name=name.trim();save();render()}};
 $("nameButton").onclick=()=>{const name=prompt("Как назвать помощника?",state.assistantName);if(name&&name.trim()){state.assistantName=name.trim();save();render();addMessage("assistant","Теперь я буду называться "+state.assistantName+" ")}};
 $("backgroundButton").onclick=()=>openModal("backgroundPanel");$("closeBackground").onclick=()=>closeModal("backgroundPanel");$("uploadBackground").onclick=()=>backgroundInput.click();$("resetBackground").onclick=()=>{state.backgroundType="preset";state.backgroundValue=DEFAULT_BG;save();render()};
@@ -177,5 +274,5 @@ function openModal(id){$(id).classList.remove("hidden");$(id).setAttribute("aria
 function chooseVoice(){if(!("speechSynthesis"in window))return null;const voices=speechSynthesis.getVoices()||[],ru=voices.filter(v=>v.lang.toLowerCase().startsWith("ru"));if(!ru.length)return null;const words=state.voiceType==="female"?["female","woman","milena","alena","svetlana","irina","katya","yelena"]:state.voiceType==="male"?["male","man","pavel","alexander","dmitry","yuri"]:["child","kid","girl","boy","junior"];return ru.find(v=>words.some(w=>v.name.toLowerCase().includes(w)))||ru[0]}
 function speakText(text){if(!state.voiceEnabled||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ru-RU";u.rate=state.voiceType==="child"?1.08:.96;u.pitch=state.voiceType==="female"?1.05:state.voiceType==="child"?1.3:.88;u.volume=1;const voice=chooseVoice();if(voice)u.voice=voice;speechSynthesis.speak(u)}
 document.querySelectorAll(".quick-actions button").forEach(b=>b.onclick=()=>{input.value=b.dataset.text;composer.requestSubmit()});
-document.querySelectorAll(".help-card").forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==="talk"){activeChat().talkMode=true;save();return addMessage("assistant","О чём расскажешь?");}if(a==="riddle")return setRiddle();if(a==="story")return story();if(a==="help")return giveHint()});
+document.querySelectorAll(".help-card").forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==="talk"){activeChat().talkMode=true;activeChat().talkQuestionHistory=[];save();return addMessage("assistant","О чём расскажешь?");}if(a==="riddle")return setRiddle();if(a==="story")return story();if(a==="help")return giveHint()});
 if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};render();
