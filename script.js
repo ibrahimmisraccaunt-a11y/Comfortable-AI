@@ -32,17 +32,54 @@ state.chats.forEach(chat=>{
 save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
 function cleanText(text){
-  return String(text??"")
-    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu,"")
-    .replace(/(?:^|\s)([:;8xX][\-^']?[)D(])/g," ")
-    .replace(/\s{2,}/g," ")
+  return Array.from(String(text??""))
+    .filter(ch=>{
+      const n=ch.codePointAt(0);
+      return !(
+        (n>=0x1F000&&n<=0x1FAFF) ||
+        (n>=0x2600&&n<=0x27BF) ||
+        (n>=0x2300&&n<=0x23FF) ||
+        (n>=0x2B00&&n<=0x2BFF) ||
+        n===0xFE0F || n===0x200D
+      );
+    })
+    .join("")
+    .replace(/(?:^|\\s)([:;8xX][\\-^']?[)D(])/g," ")
+    .replace(/\\s{2,}/g," ")
     .trim();
 }
 function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
 }
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
 function activeChat(){return state.chats.find(c=>c.id===state.activeChatId)||state.chats[0]}
-function render(){ const chat=activeChat();chatTitle.textContent=chat.name;chatList.innerHTML=""; state.chats.forEach(item=>{const b=document.createElement("button");b.className="chat-item"+(item.id===state.activeChatId?" active":"");b.textContent=item.name;b.onclick=()=>{state.activeChatId=item.id;save();render()};chatList.appendChild(b)}); messages.innerHTML="";chat.messages.forEach(([role,text])=>{const d=document.createElement("div");d.className="msg "+role;d.textContent=cleanText(text);messages.appendChild(d)}); messages.scrollTop=messages.scrollHeight;applyBackground();$("voiceEnabled").checked=!!state.voiceEnabled;
+function render(){
+  const chat=activeChat();
+  state.chats.forEach(c=>{
+    c.name=cleanText(c.name||"Новый чат")||"Новый чат";
+    c.messages=(Array.isArray(c.messages)?c.messages:[])
+      .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
+      .filter(([,text])=>text);
+  });
+  save();
+  chatTitle.textContent=chat.name;
+  chatList.innerHTML="";
+  state.chats.forEach(item=>{
+    const b=document.createElement("button");
+    b.className="chat-item"+(item.id===state.activeChatId?" active":"");
+    b.textContent=item.name;
+    b.onclick=()=>{state.activeChatId=item.id;save();render()};
+    chatList.appendChild(b);
+  });
+  messages.innerHTML="";
+  chat.messages.forEach(([role,text])=>{
+    const d=document.createElement("div");
+    d.className="msg "+role;
+    d.textContent=cleanText(text);
+    messages.appendChild(d);
+  });
+  messages.scrollTop=messages.scrollHeight;
+  applyBackground();
+  $("voiceEnabled").checked=!!state.voiceEnabled;
 }
 function applyBackground(){ if(state.backgroundType==="image"){document.body.style.backgroundImage="url(\""+state.backgroundValue+"\")";document.body.style.backgroundColor="#f4f0ff"} else document.body.style.backgroundImage=backgroundPresets[state.backgroundValue]||backgroundPresets[DEFAULT_BG];
 }
