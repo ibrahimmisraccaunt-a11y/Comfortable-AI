@@ -91,32 +91,106 @@ function checkRiddle(text){const r=currentRiddle();if(!r)return false;const answ
 function giveHint(){const r=currentRiddle();if(!r){addMessage("assistant","Сначала нажми « Загадка», и я загадаю её.");return}const i=Math.min(r.hintCount,r.h.length-1);r.hintCount++;save();addMessage("assistant"," "+r.h[i])}
 function giveUp(){const r=currentRiddle();if(!r){addMessage("assistant","Сейчас нет активной загадки ");return}r.stage="solved";save();addMessage("assistant"," Ответ: "+r.a[0]+". Ничего страшного! Хочешь ещё одну загадку?")}
 function story(){const stories=[" Однажды маленькая звезда заметила, что потеряла свой самый яркий луч. Она отправилась искать его и по дороге помогла луне, сонному котёнку и маленькому кораблику. В конце оказалось, что её луч всё это время светился в её добром сердце."," В уютном лесу жила девочка, которая умела разговаривать с облаками. Однажды облака попросили её помочь маленькому дождю найти дорогу домой. Вместе они придумали самый мягкий дождик на свете."];addMessage("assistant",stories[Math.floor(Math.random()*stories.length)])}
+function pickConversationReply(options,text){
+  const n=Array.from(normalize(text)).reduce((sum,ch)=>sum+ch.codePointAt(0),0);
+  return addMessage("assistant",options[n%options.length]);
+}
+
 function conversationReply(text){
   const x=normalize(text);
-  if(x.includes("попуга"))return addMessage("assistant","Круто! Два попугая — это интересно. Как их зовут? Они похожи друг на друга или совсем разные?");
-  if(x.includes("корелл")||x.includes("волнист"))return addMessage("assistant","Классно! А как зовут твою птицу? Она ручная и любит общаться?");
-  if(x.includes("кот")||x.includes("кошк"))return addMessage("assistant","Круто! А как зовут твою кошку или кота? Какой у него характер?");
-  if(x.includes("собак")||x.includes("пёс")||x.includes("пес"))return addMessage("assistant","Здорово! А как зовут твою собаку? Она больше любит играть или отдыхать?");
-  if(x.includes("лошад")||x.includes("кон"))return addMessage("assistant","Ух ты, лошадь — это интересно. Как её зовут? Ты часто с ней проводишь время?");
-  if(x.match(/\bу меня (есть|двое|два|две|один|одна|много)\b/) && !x.includes("бол") && !x.includes("температур")){
-    return addMessage("assistant","Круто! Расскажешь немного подробнее? Как они появились у тебя и что тебе в них больше всего нравится?");
+
+  if(x.includes("два попуга")||x.includes("две попуга")||x.includes("попуга")){
+    return pickConversationReply([
+      "Круто! Два попугая — это уже целая маленькая команда. Как их зовут? И как у тебя сейчас вообще с учёбой, всё нормально?",
+      "Здорово! Два попугая — это интересно. Они дружат между собой? И что у тебя сегодня было в школе или на учёбе?",
+      "Классно! Расскажешь, какой у них характер? А как у тебя самой дела в последнее время — учёба не слишком загружает?"
+    ],text);
   }
+
+  if(x.includes("корелл")||x.includes("волнист")){
+    return pickConversationReply([
+      "Классно! А как зовут твою птицу и что она любит делать? Кстати, как у тебя сейчас с учёбой?",
+      "Здорово! Она ручная или пока привыкает к тебе? А какой предмет тебе сейчас нравится больше всего?",
+      "Интересно! Она больше любит играть, разговаривать или просто сидеть рядом? И как у тебя вообще проходит день?"
+    ],text);
+  }
+
+  if(x.includes("кот")||x.includes("кошк")){
+    return pickConversationReply([
+      "Круто! А как зовут твоего кота или кошку? И какой у него характер? Как у тебя вообще дела сегодня?",
+      "Здорово! Он больше спокойный или настоящий непоседа? А как у тебя сейчас настроение?",
+      "О, интересно! Что он обычно делает смешного? И как у тебя проходит учёба в последнее время?"
+    ],text);
+  }
+
+  if(x.includes("собак")||x.includes("пёс")||x.includes("пес")){
+    return pickConversationReply([
+      "Круто! А как зовут твою собаку и что она больше всего любит? Как у тебя самой сейчас дела?",
+      "Здорово! Она больше любит гулять или играть дома? А как у тебя в последнее время с учёбой?",
+      "Классно! Расскажешь, какая у неё привычка самая забавная? Что у тебя сегодня ещё интересного произошло?"
+    ],text);
+  }
+
+  if(x.includes("лошад")||x.includes("кон")){
+    return pickConversationReply([
+      "Ух ты, это интересно! Как её зовут и какой у неё характер? А как у тебя самой сейчас дела?",
+      "Классно! Ты часто проводишь с ней время? И как у тебя сейчас проходит учёба?",
+      "Здорово! Что тебе больше всего нравится делать рядом с лошадью? А что сегодня было самым интересным?"
+    ],text);
+  }
+
   if(x.includes("я люблю ")||x.includes("мне нравится ")||x.includes("обожаю ")){
-    return addMessage("assistant","Здорово! А что тебе в этом нравится больше всего? Ты давно этим увлекаешься?");
+    return pickConversationReply([
+      "Круто! Что тебе в этом нравится больше всего? Ты давно этим увлекаешься?",
+      "Здорово! А как ты вообще к этому пришла? И чем ты ещё любишь заниматься в свободное время?",
+      "Интересно! Что в этом тебя больше всего радует? Как у тебя сейчас вообще дела?"
+    ],text);
   }
+
   if(x.includes("я занимаюсь ")||x.includes("я увлекаюсь ")){
-    return addMessage("assistant","Классно! А как ты к этому пришла? Что тебе больше всего нравится в этом занятии?");
+    return pickConversationReply([
+      "Классно! А что тебе больше всего нравится в этом занятии? Ты давно этим занимаешься?",
+      "Здорово! А как ты начала этим заниматься? И получается ли находить на это время вместе с учёбой?",
+      "Интересно! Есть что-нибудь, чему ты сейчас особенно хочешь научиться?"
+    ],text);
   }
-  if(x.includes("я учусь ")||x.includes("в школе")||x.includes("мой класс")){
-    return addMessage("assistant","Понятно! А какой предмет тебе сейчас нравится больше всего? Что в нём интересного?");
+
+  if(x.includes("я учусь ")||x.includes("в школе")||x.includes("мой класс")||x.includes("учёб")||x.includes("учеб")){
+    return pickConversationReply([
+      "Поняла. А какой предмет тебе сейчас нравится больше всего? И что в нём тебе интересно?",
+      "Ага, рассказывай. Как у тебя вообще в школе дела в последнее время?",
+      "Интересно! Есть предмет, который тебе сейчас особенно легко или, наоборот, сложно даётся?"
+    ],text);
   }
+
   if(x.includes("сегодня ")||x.includes("сегодня я ")){
-    return addMessage("assistant","Звучит интересно. А что сегодня было самым приятным или запомнившимся?");
+    return pickConversationReply([
+      "Звучит интересно. А что сегодня было самым приятным или запомнившимся?",
+      "Классно. А день в целом прошёл хорошо или было что-нибудь неожиданное?",
+      "Рассказывай дальше. А что сегодня подняло тебе настроение?"
+    ],text);
   }
+
+  if(x.includes("моя семья")||x.includes("у меня семья")||x.includes("сестра")||x.includes("брат")||x.includes("мама")||x.includes("папа")){
+    return pickConversationReply([
+      "Понимаю. А вы часто проводите время вместе?",
+      "Здорово. А что вы обычно любите делать вместе?",
+      "Интересно! А кто в вашей семье самый разговорчивый?"
+    ],text);
+  }
+
+  if(x.match(/\bу меня (есть|двое|два|две|один|одна|много)\b/) && !x.includes("бол") && !x.includes("температур")){
+    return pickConversationReply([
+      "Круто! Расскажешь немного подробнее? Что тебе в этом нравится больше всего?",
+      "Здорово! А как это появилось у тебя? Ты давно этим занимаешься или это совсем недавно?",
+      "Интересно! А что в этом самое весёлое или необычное?"
+    ],text);
+  }
+
   return false;
 }
 
-function ordinaryReply(text){ const x=normalize(text); if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Конечно О чём хочешь поговорить?"); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум"))return addMessage("assistant","Уа алейкум ассалям уа рахматуллахи уа баракатух! "); if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return addMessage("assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и помогать простыми ответами. "); if(conversationReply(text))return; return addMessage("assistant","Рассказывай! Мне интересно узнать о тебе больше. ");
+function ordinaryReply(text){ const x=normalize(text); if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Конечно О чём хочешь поговорить?"); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум"))return addMessage("assistant","Уа алейкум ассалям уа рахматуллахи уа баракатух! "); if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return addMessage("assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(conversationReply(text))return; return addMessage("assistant","Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит. ");
 }
 composer.onsubmit=e=>{e.preventDefault();const text=cleanText(input.value);if(!text)return;addMessage("user",text,false);input.value="";setTimeout(()=>ordinaryReply(text),180)};
 $("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
