@@ -19,7 +19,8 @@ pink:"linear-gradient(135deg,#ffe0f1 0%,#ffd7ff 48%,#e5dcff 100%)",
 sky:"linear-gradient(135deg,#e6f4ff 0%,#dff1ff 48%,#f5efff 100%)"
 };
 const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! 🌷"]],riddle:null}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
-let state=migrateState(JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"))||defaultState;
+const savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
+let state=migrateState(JSON.parse(savedData||"null"))||defaultState;
 if(!state.activeChatId)state.activeChatId=state.chats[0].id;
 save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
