@@ -48,3 +48,10 @@ button,input{font:inherit}button{cursor:pointer}.app-shell{min-height:100vh;disp
 .settings-item>span:last-child{font-size:12px;color:var(--accent);font-weight:800;white-space:nowrap}
 .settings-reset{margin-top:10px}
 @media(max-width:580px){.settings-card{width:min(430px,100%)}}
+
+.chat-search{display:flex;gap:6px;align-items:center}
+.chat-search input{width:100%;min-width:0;border:1px solid var(--border);background:rgba(255,255,255,.9);color:var(--text);border-radius:11px;padding:9px 10px;outline:none;font-size:12px}
+.chat-search input:focus{border-color:#a48fff;box-shadow:0 0 0 3px rgba(123,97,255,.1)}
+.chat-search button{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:10px;padding:8px 7px;font-size:10px;white-space:nowrap}
+.chat-search-empty{padding:10px 8px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:580px){.chat-search{display:none}}
