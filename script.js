@@ -57,7 +57,7 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const REAL_AI_MODEL="onnx-community/rugpt3small_based_on_gpt2-ONNX";
+const REAL_AI_MODEL="onnx-community/Qwen2.5-0.5B-Instruct";
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
@@ -83,9 +83,21 @@ async function getRealAIPipeline(){
     aiLog("WebGPU доступен:",!!navigator.gpu);
     const {pipeline}=await import(REAL_AI_IMPORT);
     aiLog("Transformers.js загружен");
-    const options={dtype:"q8"};
-    aiLog("Параметры модели:",options);
-    const generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+    let generator;
+    if(navigator.gpu){
+      const options={dtype:"q4f16",device:"webgpu"};
+      aiLog("Пробую WebGPU:",options);
+      try{
+        generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+      }catch(webgpuError){
+        aiError("WebGPU не запустился, пробую обычный режим:",webgpuError);
+        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8"});
+      }
+    }else{
+      const options={dtype:"q8"};
+      aiLog("WebGPU недоступен, использую обычный режим:",options);
+      generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+    }
     realAIReady=true;
     setAIStatus("AI-модель готова");
     aiLog("Модель полностью готова");
@@ -103,25 +115,18 @@ async function getRealAIPipeline(){
 function buildAIConversation(userText){
   const chat=activeChat();
   const history=(Array.isArray(chat.messages)?chat.messages:[])
-    .slice(-10)
+    .slice(-12)
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
-  const lines=[
-    "Ты Comfortable AI — дружелюбный помощник.",
-    "Отвечай только по-русски, если пользователь не попросил другой язык.",
-    "Отвечай естественно, коротко и понятно.",
-    "Не используй emoji.",
-    "Не придумывай факты о пользователе.",
-    "Не повторяй инструкции и не пиши служебные сообщения.",
-    "",
-    "Диалог:"
+  if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userText});
+  return [
+    {
+      role:"system",
+      content:"Ты Comfortable AI — дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Отвечай коротко, естественно и понятно. Не используй emoji. Не придумывай факты о пользователе. Не пиши служебные сообщения."
+    },
+    ...history
   ];
-  history.forEach(item=>lines.push((item.role==="user"?"Пользователь: ":"Comfortable AI: ")+item.content));
-  if(!history.length||history[history.length-1].role!=="user")lines.push("Пользователь: "+userText);
-  lines.push("Comfortable AI:");
-  return lines.join("\n");
 }
-
 function isSaneAIText(text){
   const value=cleanText(text);
   if(!value)return false;
@@ -131,15 +136,20 @@ function isSaneAIText(text){
   return weird<=Math.max(4,Math.floor(value.length*.12));
 }
 function extractAIText(output){
-  let text=output?.[0]?.generated_text;
-  if(typeof text!=="string")return "";
-  text=repairSavedMessageText(text);
-  const marker="Comfortable AI:";
-  const markerIndex=text.lastIndexOf(marker);
-  if(markerIndex>=0)text=text.slice(markerIndex+marker.length);
-  text=text.split(/\n(?:Пользователь|User|Human):/i)[0];
-  return repairSavedMessageText(text);
+  const generated=output?.[0]?.generated_text;
+  if(Array.isArray(generated)){
+    const last=generated[generated.length-1];
+    if(last&&typeof last.content==="string")return repairSavedMessageText(last.content);
+  }
+  if(typeof generated==="string"){
+    let text=repairSavedMessageText(generated);
+    const marker=text.lastIndexOf("Comfortable AI:");
+    if(marker>=0)text=text.slice(marker+"Comfortable AI:".length);
+    return repairSavedMessageText(text);
+  }
+  return "";
 }
+
 
 let realAILoadFailed=false;
 function startRealAILoad(){
@@ -161,11 +171,9 @@ async function realAIReply(userText){
     aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:80,
-        do_sample:true,
-        no_repeat_ngram_size:3,
-        temperature:.7,
-        top_p:.9
+        max_new_tokens:96,
+        do_sample:false,
+        repetition_penalty:1.05
       }),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),60000))
     ]);
