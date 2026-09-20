@@ -119,10 +119,13 @@ function buildAIConversation(userText){
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
   if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userText});
+  if(history[history.length-1]?.role==="user"){
+    history.push({role:"assistant",content:"<think>\n\n</think>\n\n"});
+  }
   return [
     {
       role:"system",
-      content:"Ты Comfortable AI — умный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. /no_think. Всегда отвечай на сам вопрос пользователя. Не отвечай одним словом, если вопрос требует объяснения. Для простого вопроса дай 2–4 понятных предложения с конкретным объяснением и примером, когда это уместно. Не уходи от темы, не повторяй вопрос и не пиши служебные сообщения. Не используй emoji. Не придумывай факты о пользователе."
+      content:"Ты Comfortable AI — умный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Всегда отвечай на сам вопрос пользователя. Не отвечай одним словом, если вопрос требует объяснения. Для простого вопроса дай 2–4 понятных предложения с конкретным объяснением и примером, когда это уместно. Не уходи от темы, не повторяй вопрос и не пиши служебные сообщения. Не используй emoji. Не придумывай факты о пользователе."
     },
     ...history
   ];
@@ -145,10 +148,10 @@ function extractAIText(output){
   const generated=output?.[0]?.generated_text;
   if(Array.isArray(generated)){
     const last=generated[generated.length-1];
-    if(last&&typeof last.content==="string")return repairSavedMessageText(last.content);
+    if(last&&typeof last.content==="string")return repairSavedMessageText(last.content.replace(/<think>[\s\S]*?<\/think>/gi,"").trim());
   }
   if(typeof generated==="string"){
-    let text=repairSavedMessageText(generated);
+    let text=repairSavedMessageText(generated.replace(/<think>[\s\S]*?<\/think>/gi,"").trim());
     const marker=text.lastIndexOf("Comfortable AI:");
     if(marker>=0)text=text.slice(marker+"Comfortable AI:".length);
     return repairSavedMessageText(text);
