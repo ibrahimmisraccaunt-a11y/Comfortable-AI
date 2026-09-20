@@ -159,7 +159,9 @@ function addMessage(role,text,speak=true){text=cleanText(text);const chat=active
 function normalize(text){return text.toLowerCase().replace(/ё/g,"е").trim()}
 function setRiddle(){
   const chat=activeChat();
-  if(chat.riddle&&chat.riddle.stage==="active")return;
+  if(chat.riddle&&chat.riddle.stage==="active"){
+    return addMessage("assistant","У тебя уже есть активная загадка. Попробуй ответить, попроси подсказку или нажми «Я сдаюсь».");
+  }
 
   let history=Array.isArray(chat.riddleHistory)?chat.riddleHistory.filter(i=>Number.isInteger(i)&&i>=0&&i<riddles.length):[];
   const previous=chat.riddle&&Number.isInteger(chat.riddle.index)?chat.riddle.index:null;
@@ -182,7 +184,18 @@ function setRiddle(){
 }
 function currentRiddle(){const stateRiddle=activeChat().riddle;if(!stateRiddle||stateRiddle.stage!=="active")return null;const base=riddles[stateRiddle.index];if(!base)return null;return {...base,index:stateRiddle.index,stage:stateRiddle.stage,hintCount:Number.isFinite(stateRiddle.hintCount)?stateRiddle.hintCount:0}}
 function checkRiddle(text){const r=currentRiddle();if(!r)return false;const answer=normalize(text);if(r.a.some(x=>answer===normalize(x)||answer.includes(normalize(x)))){activeChat().riddle.stage="solved";save();addMessage("assistant","Да! Правильный ответ!");return true}addMessage("assistant","Нет Попробуй ещё раз или напиши «Подсказка».");return true}
-function giveHint(){const chat=activeChat();const r=currentRiddle();if(!r)return addMessage("assistant","Сначала нажми «Загадка», и я загадаю её.");const hintCount=Number.isFinite(chat.riddle.hintCount)?chat.riddle.hintCount:0;const i=Math.min(hintCount,r.h.length-1);chat.riddle.hintCount=hintCount+1;save();return addMessage("assistant",r.h[i]);}
+function giveHint(){
+  const chat=activeChat();
+  const r=currentRiddle();
+  if(!r)return addMessage("assistant","Сначала нажми «Загадка», и я загадаю её.");
+  const hintCount=Number.isFinite(chat.riddle.hintCount)?chat.riddle.hintCount:0;
+  if(hintCount>=r.h.length){
+    return addMessage("assistant","Это уже все подсказки. Попробуй ответить или нажми «Я сдаюсь».");
+  }
+  chat.riddle.hintCount=hintCount+1;
+  save();
+  return addMessage("assistant",r.h[hintCount]);
+}
 function giveUp(){const r=currentRiddle();if(!r){addMessage("assistant","Сейчас нет активной загадки ");return}activeChat().riddle.stage="solved";save();addMessage("assistant"," Ответ: "+r.a[0]+". Ничего страшного! Хочешь ещё одну загадку?")}
 function story(){
   const stories=[
