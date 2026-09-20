@@ -154,15 +154,38 @@ async function getRealAIPipeline(){
       const options={dtype:modelInfo.dtype,device:"webgpu",...progressOptions};
       aiLog("Пробую WebGPU:",options);
       try{
-        generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+        const webgpuPromise=pipeline("text-generation",REAL_AI_MODEL,options);
+        generator=await Promise.race([
+          webgpuPromise,
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error("WEBGPU_INIT_TIMEOUT")),25000))
+        ]);
       }catch(webgpuError){
-        aiError("WebGPU не запустился, перехожу на q8:",webgpuError);
-        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",device:"wasm",...progressOptions});
+        aiError("Qwen 1.5B не запустилась через WebGPU:",webgpuError);
+        setAIStatus("Переключаюсь на лёгкую модель...");
+        setAILoadProgress(Math.max(aiLoadProgress,96),"Qwen 1.5B не запустилась, запускаю Qwen 0.5B...");
+        const fallback=AI_MODELS.small;
+        try{
+          generator=await pipeline("text-generation",fallback.id,{dtype:fallback.dtype,device:fallback.device,progress_callback:handleAIProgress});
+          selectedAIModelKey="small";
+          try{
+            localStorage.setItem(AI_MODEL_STORAGE_KEY,"small");
+            localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
+          }catch(storageError){}
+          aiLog("Автоматически переключилась на Qwen2.5-0.5B-Instruct");
+        }catch(fallbackError){
+          aiError("Не удалось запустить и лёгкую модель:",fallbackError);
+          throw fallbackError;
+        }
       }
     }else{
-      const options={dtype:"q8",device:"wasm",...progressOptions};
-      aiLog("WebGPU недоступен, использую WASM:",options);
-      generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+      const fallback=AI_MODELS.small;
+      setAIStatus("WebGPU недоступен, запускаю лёгкую модель...");
+      generator=await pipeline("text-generation",fallback.id,{dtype:fallback.dtype,device:fallback.device,progress_callback:handleAIProgress});
+      selectedAIModelKey="small";
+      try{
+        localStorage.setItem(AI_MODEL_STORAGE_KEY,"small");
+        localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
+      }catch(storageError){}
     }
     realAIReady=true;
     setAILoadProgress(100,"Модель готова");
@@ -176,6 +199,7 @@ async function getRealAIPipeline(){
     setAIStatus("Ошибка загрузки AI");
     setAILoadProgress(aiLoadProgress,"Не удалось загрузить модель");
     aiError("ОШИБКА ЗАГРУЗКИ МОДЕЛИ:",error);
+    setChatLocked(false);
     throw error;
   });
   return realAIPipelinePromise;
