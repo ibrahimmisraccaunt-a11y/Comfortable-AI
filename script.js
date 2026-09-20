@@ -138,7 +138,6 @@ async function getRealAIPipeline(){
     const {pipeline}=await import(REAL_AI_IMPORT);
     aiLog("Transformers.js загружен");
     let generator;
-    const modelInfo=AI_MODELS[selectedAIModelKey];
     const progressOptions={progress_callback:handleAIProgress};
     if(modelInfo.device==="wasm"){
       const options={dtype:modelInfo.dtype,device:"wasm",...progressOptions};
