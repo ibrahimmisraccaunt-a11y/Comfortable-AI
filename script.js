@@ -71,7 +71,30 @@ function cleanText(text){
     .replace(/\\s{2,}/g," ")
     .trim();
 }
-function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null,riddleHistory:Array.isArray(c.riddleHistory)?c.riddleHistory:((c.riddle&&Number.isInteger(c.riddle.index))?[c.riddle.index]:[]),talkMode:false,talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory:[]})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
+function migrateState(old){
+  if(!old||!Array.isArray(old.chats))return null;
+  const chats=old.chats.filter(c=>c&&typeof c==="object").map(c=>({
+    id:String(c.id??Date.now()+Math.random()),
+    name:cleanText(c.name||"Новый чат")||"Новый чат",
+    messages:Array.isArray(c.messages)?c.messages.map(m=>{
+      const pair=Array.isArray(m)?m:[m?.role||"assistant",m?.text||""];
+      return [pair[0]==="user"?"user":"assistant",cleanText(pair[1])];
+    }).filter(m=>m[1]):[],
+    riddle:c.riddle&&typeof c.riddle==="object"?c.riddle:null,
+    riddleHistory:Array.isArray(c.riddleHistory)?c.riddleHistory.filter(i=>Number.isInteger(i)):[],
+    talkMode:false,
+    talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory.filter(q=>typeof q==="string"):[],
+  }));
+  return {
+    ...defaultState,
+    assistantName:cleanText(old.assistantName||defaultState.assistantName)||defaultState.assistantName,
+    chats:chats.length?chats:defaultState.chats,
+    activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),
+    backgroundType:old.backgroundType==="image"?"image":"preset",
+    backgroundValue:old.backgroundValue||defaultState.backgroundValue,
+    voiceEnabled:!!old.voiceEnabled,
+    voiceType:["female","male","child"].includes(old.voiceType)?old.voiceType:defaultState.voiceType
+  };
 }
 function save(){
   try{
