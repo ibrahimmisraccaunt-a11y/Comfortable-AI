@@ -122,7 +122,7 @@ function buildAIConversation(userText){
   return [
     {
       role:"system",
-      content:"Ты Comfortable AI — дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Отвечай коротко, естественно и понятно. Не используй emoji. Не придумывай факты о пользователе. Не пиши служебные сообщения."
+      content:"Ты Comfortable AI — умный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Всегда отвечай на сам вопрос пользователя. Не отвечай одним словом, если вопрос требует объяснения. Для простого вопроса дай 2–4 понятных предложения с конкретным объяснением и примером, когда это уместно. Не уходи от темы, не повторяй вопрос и не пиши служебные сообщения. Не используй emoji. Не придумывай факты о пользователе."
     },
     ...history
   ];
@@ -133,6 +133,8 @@ function isSaneAIText(text){
   const letters=(value.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;
   const weird=(value.match(/[^\p{L}\p{N}\s.,!?;:"«»()\-—'’]/gu)||[]).length;
   if(letters<3)return false;
+  const words=value.split(/\s+/).filter(Boolean);
+  if(words.length<3)return false;
   return weird<=Math.max(4,Math.floor(value.length*.12));
 }
 function extractAIText(output){
@@ -171,9 +173,12 @@ async function realAIReply(userText){
     aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:96,
-        do_sample:false,
-        repetition_penalty:1.05
+        max_new_tokens:128,
+        do_sample:true,
+        temperature:.7,
+        top_p:.9,
+        repetition_penalty:1.08,
+        no_repeat_ngram_size:3
       }),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),60000))
     ]);
