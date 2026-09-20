@@ -62,8 +62,8 @@ const AI_MODELS={
   small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈512 МБ",dtype:"q8",device:"wasm"},
   large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu"}
 };
-const DEFAULT_AI_MODEL_KEY="large";
-const AI_MODEL_PREF_VERSION="2";
+const DEFAULT_AI_MODEL_KEY="small";
+const AI_MODEL_PREF_VERSION="3";
 let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
 try{
   const storedAIModel=localStorage.getItem(AI_MODEL_STORAGE_KEY);
