@@ -205,7 +205,8 @@ function askTalkQuestion(chat, options){
 
 function illnessReply(text){
   const x=normalize(text);
-  if(/\\b(я заболела|я заболел|я болею|мне плохо|я простудилась|я простудился)\\b/.test(x)){
+  const phrases=["я заболела","я заболел","я болею","мне плохо","я простудилась","я простудился"];
+  if(phrases.some(p=>x===p||x.startsWith(p+" ")||x.includes(" "+p+" "))){
     return addMessage("assistant","Ох, как жаль. Да исцелит тебя Аллах. А что у тебя конкретно болит? Я хочу помочь.");
   }
   return false;
