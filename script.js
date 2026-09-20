@@ -29,7 +29,7 @@ state.chats.forEach(chat=>{
   chat.name=cleanText(chat.name||"Новый чат")||"Новый чат";
   chat.messages=(Array.isArray(chat.messages)?chat.messages:[])
     .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
-    .filter(([,text])=>text);
+    .filter(([,text])=>text&&text!=="undefined");
 });
 save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
@@ -60,7 +60,7 @@ function save(){
       c.name=cleanText(c.name||"Новый чат")||"Новый чат";
       c.messages=(Array.isArray(c.messages)?c.messages:[])
         .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
-        .filter(([,text])=>text)
+        .filter(([,text])=>text&&text!=="undefined")
         .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.");
     });
     state.assistantName=cleanText(state.assistantName||defaultState.assistantName);
@@ -71,6 +71,7 @@ function save(){
 }
 function activeChat(){return state.chats.find(c=>c.id===state.activeChatId)||state.chats[0]}
 function render(){
+  state.chats.forEach(c=>{c.messages=(Array.isArray(c.messages)?c.messages:[]).filter(m=>Array.isArray(m)&&m[1]!==undefined&&String(m[1]).trim()!=="undefined")});
   const chat=activeChat();
   state.chats.forEach(c=>{
     c.name=cleanText(c.name||"Новый чат")||"Новый чат";
@@ -106,7 +107,7 @@ function normalize(text){return text.toLowerCase().replace(/ё/g,"е").trim()}
 function setRiddle(){const chat=activeChat();if(chat.riddle&&chat.riddle.stage==="active")return;const index=Math.floor(Math.random()*riddles.length);chat.riddle={index:index,stage:"active",hintCount:0};addMessage("assistant"," "+riddles[index].q)}
 function currentRiddle(){const r=activeChat().riddle;return r&&r.stage==="active"?riddles[r.index]:null}
 function checkRiddle(text){const r=currentRiddle();if(!r)return false;const answer=normalize(text);if(r.a.some(x=>answer===normalize(x)||answer.includes(normalize(x)))){activeChat().riddle.stage="solved";save();addMessage("assistant","Да! Правильный ответ!");return true}addMessage("assistant","Нет Попробуй ещё раз или напиши «Подсказка».");return true}
-function giveHint(){const r=currentRiddle();if(!r){addMessage("assistant","Сначала нажми « Загадка», и я загадаю её.");return}const i=Math.min(r.hintCount,r.h.length-1);r.hintCount++;save();addMessage("assistant"," "+r.h[i])}
+function giveHint(){const r=currentRiddle();if(!r)return addMessage("assistant","Сначала нажми «Загадка», и я загадаю её.");const i=Math.min(r.hintCount,r.h.length-1);r.hintCount++;save();return addMessage("assistant",r.h[i]);}
 function giveUp(){const r=currentRiddle();if(!r){addMessage("assistant","Сейчас нет активной загадки ");return}r.stage="solved";save();addMessage("assistant"," Ответ: "+r.a[0]+". Ничего страшного! Хочешь ещё одну загадку?")}
 function story(){const stories=[" Однажды маленькая звезда заметила, что потеряла свой самый яркий луч. Она отправилась искать его и по дороге помогла луне, сонному котёнку и маленькому кораблику. В конце оказалось, что её луч всё это время светился в её добром сердце."," В уютном лесу жила девочка, которая умела разговаривать с облаками. Однажды облака попросили её помочь маленькому дождю найти дорогу домой. Вместе они придумали самый мягкий дождик на свете."];addMessage("assistant",stories[Math.floor(Math.random()*stories.length)])}
 function pickConversationReply(options,text){
