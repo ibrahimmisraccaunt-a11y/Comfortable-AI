@@ -47,7 +47,7 @@ state.assistantName=cleanText(state.assistantName);
 state.chats.forEach(chat=>{
   chat.name=cleanText(chat.name||"Новый чат")||"Новый чат";
   chat.messages=(Array.isArray(chat.messages)?chat.messages:[])
-    .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
+    .map(([role,text])=>[role==="user"?"user":"assistant",repairSavedMessageText(text)])
     .filter(([,text])=>text&&text!=="undefined");
 });
 save();
@@ -71,6 +71,19 @@ function cleanText(text){
     .replace(/\\s{2,}/g," ")
     .trim();
 }
+function repairSavedMessageText(text){
+  const value=cleanText(text);
+  if(!value)return "";
+  if((value.startsWith("[")&&value.endsWith("]"))){
+    try{
+      const parsed=JSON.parse(value);
+      if(Array.isArray(parsed)&&parsed.every(item=>typeof item==="string")){
+        return cleanText(parsed.find(item=>item.trim())||"");
+      }
+    }catch(error){}
+  }
+  return value;
+}
 function migrateState(old){
   if(!old||!Array.isArray(old.chats))return null;
   const chats=old.chats.filter(c=>c&&typeof c==="object").map(c=>({
@@ -78,7 +91,7 @@ function migrateState(old){
     name:cleanText(c.name||"Новый чат")||"Новый чат",
     messages:Array.isArray(c.messages)?c.messages.map(m=>{
       const pair=Array.isArray(m)?m:[m?.role||"assistant",m?.text||""];
-      return [pair[0]==="user"?"user":"assistant",cleanText(pair[1])];
+      return [pair[0]==="user"?"user":"assistant",repairSavedMessageText(pair[1])];
     }).filter(m=>m[1]):[],
     riddle:c.riddle&&typeof c.riddle==="object"?c.riddle:null,
     riddleHistory:Array.isArray(c.riddleHistory)?c.riddleHistory.filter(i=>Number.isInteger(i)):[],
@@ -101,7 +114,7 @@ function save(){
     state.chats.forEach(c=>{
       c.name=cleanText(c.name||"Новый чат")||"Новый чат";
       c.messages=(Array.isArray(c.messages)?c.messages:[])
-        .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
+        .map(([role,text])=>[role==="user"?"user":"assistant",repairSavedMessageText(text)])
         .filter(([,text])=>text&&text!=="undefined")
         .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.")
         .filter((item,index,arr)=>!(item[0]==="assistant"&&arr[index-1]?.[0]==="assistant"&&arr[index-1]?.[1]?.startsWith("Ох, как жаль. Да исцелит тебя Аллах.")));
@@ -119,7 +132,7 @@ function render(){
   state.chats.forEach(c=>{
     c.name=cleanText(c.name||"Новый чат")||"Новый чат";
     c.messages=(Array.isArray(c.messages)?c.messages:[])
-      .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
+      .map(([role,text])=>[role==="user"?"user":"assistant",repairSavedMessageText(text)])
       .filter(([,text])=>text);
   });
   save();
@@ -181,7 +194,7 @@ function render(){
   chat.messages.forEach(([role,text])=>{
     const d=document.createElement("div");
     d.className="msg "+role;
-    d.textContent=cleanText(text);
+    d.textContent=repairSavedMessageText(text);
     messages.appendChild(d);
   });
   messages.scrollTop=messages.scrollHeight;
@@ -190,7 +203,7 @@ function render(){
 }
 function applyBackground(){ if(state.backgroundType==="image"){document.body.style.backgroundImage="url(\""+state.backgroundValue+"\")";document.body.style.backgroundColor="#f4f0ff"} else document.body.style.backgroundImage=backgroundPresets[state.backgroundValue]||backgroundPresets[DEFAULT_BG];
 }
-function addMessage(role,text,speak=true){text=cleanText(text);const chat=activeChat();const last=chat.messages[chat.messages.length-1];if(role==="assistant"&&last&&last[0]==="assistant"&&last[1]===text)return;chat.messages.push([role,text]);save();render();if(role==="assistant"&&speak)speakText(text)}
+function addMessage(role,text,speak=true){text=role==="assistant"?repairSavedMessageText(text):cleanText(text);const chat=activeChat();const last=chat.messages[chat.messages.length-1];if(role==="assistant"&&last&&last[0]==="assistant"&&last[1]===text)return;chat.messages.push([role,text]);save();render();if(role==="assistant"&&speak)speakText(text)}
 function normalize(text){return text.toLowerCase().replace(/ё/g,"е").trim()}
 function setRiddle(){
   const chat=activeChat();
