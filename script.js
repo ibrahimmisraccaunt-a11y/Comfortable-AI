@@ -65,9 +65,10 @@ let aiLoadProgress=0;
 
 function setAILoadProgress(percent,text){
   aiLoadProgress=Math.max(0,Math.min(100,Number(percent)||0));
-  const bar=$("aiLoadBar"), label=$("aiLoadLabel"), value=$("aiLoadPercent");
+  const bar=$("aiLoadBar"), label=$("aiLoadLabel"), value=$("aiLoadPercent"), remaining=$("aiLoadRemaining");
   if(bar)bar.style.width=aiLoadProgress+"%";
   if(value)value.textContent=Math.round(aiLoadProgress)+"%";
+  if(remaining)remaining.textContent="Осталось: "+Math.max(0,100-Math.round(aiLoadProgress))+"%";
   if(label&&text)label.textContent=text;
 }
 
@@ -108,7 +109,10 @@ async function getRealAIPipeline(){
     if(navigator.gpu){
       const options={dtype:"q4f16",device:"webgpu",progress_callback:info=>{
         if(info?.status==="progress"&&typeof info.progress==="number"){
-          setAILoadProgress(Math.max(aiLoadProgress,info.progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+          {
+            const progress=typeof info.progress==="number"?info.progress:aiLoadProgress;
+            setAILoadProgress(progress,info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+          }
         }
       }};
       aiLog("Пробую WebGPU:",options);
@@ -118,7 +122,10 @@ async function getRealAIPipeline(){
         aiError("WebGPU не запустился, пробую обычный режим:",webgpuError);
         generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",progress_callback:info=>{
           if(info?.status==="progress"&&typeof info.progress==="number"){
-            setAILoadProgress(Math.max(aiLoadProgress,info.progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+            {
+              const progress=typeof info.progress==="number"?info.progress:aiLoadProgress;
+              setAILoadProgress(progress,info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+            }
           }
         }});
       }
