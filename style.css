@@ -8,7 +8,16 @@ button,input{font:inherit}button{cursor:pointer}.app-shell{min-height:100vh;disp
 .primary-button,.send-button{border:0;color:#fff;font-weight:800;padding:12px 15px;border-radius:15px;background:linear-gradient(135deg,#7b61ff,#8f69ff 55%,#f35eb7);box-shadow:0 8px 20px rgba(123,97,255,.25)}
 .primary-button:hover,.send-button:hover{filter:brightness(1.04);transform:translateY(-1px)}
 .sidebar-section-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}.chat-list{display:flex;flex-direction:column;gap:7px;overflow:auto;min-height:0}
-.chat-item{border:1px solid transparent;background:transparent;text-align:left;color:var(--text);padding:11px 12px;border-radius:13px}.chat-item:hover{background:#f0ebff}.chat-item.active{background:linear-gradient(90deg,#ede7ff,#ffe7f7);border-color:#e3d9ff;font-weight:800}
+.chat-row{display:flex;align-items:center;gap:6px;border-radius:13px;padding:3px}
+.chat-row.active{background:linear-gradient(90deg,#ede7ff,#ffe7f7);border:1px solid #e3d9ff}
+.chat-item{flex:1;border:1px solid transparent;background:transparent;text-align:left;color:var(--text);padding:9px;border-radius:10px;min-width:0}
+.chat-item:hover{background:#f0ebff}
+.chat-row.active .chat-item{font-weight:800}
+.chat-actions{display:flex;gap:4px;flex-wrap:wrap}
+.chat-action{border:1px solid #ded4f4;background:#fff;border-radius:9px;padding:6px 7px;font-size:11px;color:var(--text);cursor:pointer}
+.chat-action:hover{background:#f5f0ff}
+.chat-action.delete{color:#9b2c4a}
+
 .sidebar-bottom{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .secondary-button,.icon-button,.quick-actions button,.voice-options button,.preset-grid button{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:13px;padding:10px 12px}.secondary-button:hover,.icon-button:hover,.quick-actions button:hover,.voice-options button:hover,.preset-grid button:hover{background:#fff}
 .secondary-button.wide{width:100%;margin-top:8px}.main{flex:1;min-width:0;width:100%;max-width:1050px;margin:0 auto;display:flex;flex-direction:column}
