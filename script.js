@@ -22,7 +22,14 @@ const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messa
 const savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v3")||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
 let state=migrateState(JSON.parse(savedData||"null"))||defaultState;
 if(!state.activeChatId)state.activeChatId=state.chats[0].id;
-state.chats.forEach(c=>{c.talkMode=false;c.riddleHistory=Array.isArray(c.riddleHistory)?c.riddleHistory:((c.riddle&&Number.isInteger(c.riddle.index))?[c.riddle.index]:[])});
+state.chats.forEach(c=>{
+  const history=Array.isArray(c.riddleHistory)?c.riddleHistory:[];
+  const fromMessages=riddles.map((r,i)=>({i,q:normalize(r.q)}))
+    .filter(item=>Array.isArray(c.messages)&&c.messages.some(m=>Array.isArray(m)&&m[0]==="assistant"&&normalize(m[1]).includes(item.q)))
+    .map(item=>item.i);
+  c.talkMode=false;
+  c.riddleHistory=[...new Set([...history,...fromMessages,...((c.riddle&&Number.isInteger(c.riddle.index))?[c.riddle.index]:[])])];
+});
 
 state.assistantName=cleanText(state.assistantName);
 state.chats.forEach(chat=>{
