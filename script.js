@@ -135,6 +135,10 @@ function isSaneAIText(text){
   if(letters<3)return false;
   const words=value.split(/\s+/).filter(Boolean);
   if(words.length<3)return false;
+  const russianLetters=(value.match(/[А-Яа-яЁё]/g)||[]).length;
+  if(russianLetters<Math.min(8,Math.ceil(letters*.35)))return false;
+  const suspicious=(value.match(/(?:бил|бил|аль|баль|бья|ляха|модульная)/gi)||[]).length;
+  if(suspicious>=3)return false;
   return weird<=Math.max(4,Math.floor(value.length*.12));
 }
 function extractAIText(output){
@@ -173,11 +177,9 @@ async function realAIReply(userText){
     aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:128,
-        do_sample:true,
-        temperature:.7,
-        top_p:.9,
-        repetition_penalty:1.08,
+        max_new_tokens:96,
+        do_sample:false,
+        repetition_penalty:1.05,
         no_repeat_ngram_size:3
       }),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),60000))
