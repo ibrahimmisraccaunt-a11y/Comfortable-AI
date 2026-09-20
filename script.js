@@ -52,6 +52,10 @@ state.chats.forEach(chat=>{
 });
 save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
+const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
+chatSearchInput.oninput=()=>render();
+clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
+
 let lastSubmittedText="";
 let lastSubmittedAt=0;
 function cleanText(text){
@@ -138,6 +142,12 @@ function render(){
   save();
   chatTitle.textContent=chat.name;
   chatList.innerHTML="";
+  const searchQuery=normalize(chatSearchInput?.value||"");
+  const visibleChats=state.chats.filter(item=>{
+    if(!searchQuery)return true;
+    const haystack=normalize(item.name+" "+(Array.isArray(item.messages)?item.messages.map(m=>Array.isArray(m)?m[1]:"").join(" "):""));
+    return haystack.includes(searchQuery);
+  });
   state.chats.forEach(item=>{
     const row=document.createElement("div");
     row.className="chat-row"+(item.id===state.activeChatId?" active":"");
@@ -188,8 +198,14 @@ function render(){
     actions.appendChild(remove);
     row.appendChild(b);
     row.appendChild(actions);
-    chatList.appendChild(row);
+    if(visibleChats.includes(item))chatList.appendChild(row);
   });
+  if(!visibleChats.length){
+    const empty=document.createElement("div");
+    empty.className="chat-search-empty";
+    empty.textContent=searchQuery?"Ничего не найдено":"Нет чатов";
+    chatList.appendChild(empty);
+  }
   messages.innerHTML="";
   chat.messages.forEach(([role,text])=>{
     const d=document.createElement("div");
