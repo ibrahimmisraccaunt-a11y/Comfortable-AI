@@ -73,7 +73,7 @@ async function getRealAIPipeline(){
     setAIStatus("Загрузка AI-модели...");
     const {pipeline}=await import(REAL_AI_IMPORT);
     const webgpu=!!navigator.gpu;
-    const options=webgpu?{dtype:"q4f16",device:"webgpu"}:{dtype:"q4"};
+    const options=webgpu?{dtype:"q4",device:"webgpu"}:{dtype:"q4"};
     const generator=await pipeline("text-generation",REAL_AI_MODEL,options);
     realAIReady=true;
     setAIStatus("AI-модель готова");
@@ -102,6 +102,14 @@ function buildAIConversation(userText){
   ];
 }
 
+function isSaneAIText(text){
+  const value=cleanText(text);
+  if(!value)return false;
+  const letters=(value.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;
+  const weird=(value.match(/[^\p{L}\p{N}\s.,!?;:"«»()\-—'’]/gu)||[]).length;
+  if(letters<3)return false;
+  return weird<=Math.max(4,Math.floor(value.length*.12));
+}
 function extractAIText(output){
   const generated=output?.[0]?.generated_text;
   if(typeof generated==="string")return repairSavedMessageText(generated);
@@ -137,7 +145,7 @@ async function realAIReply(userText){
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),8000))
     ]);
     const answer=extractAIText(output);
-    if(answer)return addMessage("assistant",answer);
+    if(answer&&isSaneAIText(answer))return addMessage("assistant",answer);
     return addMessage("assistant","Чем могу помочь?");
   }catch(error){
     console.error("Не удалось получить ответ AI-модели:",error);
