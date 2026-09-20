@@ -57,6 +57,83 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
+const REAL_AI_MODEL="onnx-community/Qwen2.5-0.5B-Instruct";
+const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+let realAIPipelinePromise=null;
+let realAIReady=false;
+
+function setAIStatus(text){
+  const status=document.querySelector(".online");
+  if(status)status.textContent=text;
+}
+
+async function getRealAIPipeline(){
+  if(realAIPipelinePromise)return realAIPipelinePromise;
+  realAIPipelinePromise=(async()=>{
+    setAIStatus("Загрузка AI-модели...");
+    const {pipeline}=await import(REAL_AI_IMPORT);
+    const webgpu=!!navigator.gpu;
+    const options=webgpu?{dtype:"q4f16",device:"webgpu"}:{dtype:"q4"};
+    const generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+    realAIReady=true;
+    setAIStatus("AI-модель готова");
+    return generator;
+  })().catch(error=>{
+    realAIPipelinePromise=null;
+    realAIReady=false;
+    setAIStatus("Готов к общению");
+    throw error;
+  });
+  return realAIPipelinePromise;
+}
+
+function buildAIConversation(userText){
+  const chat=activeChat();
+  const history=(Array.isArray(chat.messages)?chat.messages:[])
+    .slice(-12)
+    .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
+    .filter(item=>item.content);
+  history.push({role:"user",content:userText});
+  return [
+    {
+      role:"system",
+      content:"Ты Comfortable AI, дружелюбный виртуальный помощник. Отвечай по-русски, если пользователь не просит другой язык. Отвечай понятно и естественно, без emoji. Не утверждай, что у тебя есть доступ к интернету, если ты его не используешь. Не придумывай личные факты о пользователе. Сохраняй уважительный тон. Если вопрос требует точных текущих данных, честно скажи, что тебе нужны актуальные источники."
+    },
+    ...history
+  ];
+}
+
+function extractAIText(output){
+  const generated=output?.[0]?.generated_text;
+  if(typeof generated==="string")return repairSavedMessageText(generated);
+  if(Array.isArray(generated)){
+    const last=generated[generated.length-1];
+    if(last&&typeof last.content==="string")return repairSavedMessageText(last.content);
+  }
+  return "";
+}
+
+async function realAIReply(userText){
+  const previousStatus=document.querySelector(".online")?.textContent||"Готов к общению";
+  try{
+    const generator=await getRealAIPipeline();
+    setAIStatus(realAIReady?"AI-модель готова":"Готов к общению");
+    const output=await generator(buildAIConversation(userText),{
+      max_new_tokens:180,
+      do_sample:true,
+      temperature:.7,
+      top_p:.9
+    });
+    const answer=extractAIText(output);
+    if(answer)return addMessage("assistant",answer);
+    return addMessage("assistant","Не получилось получить ответ от AI-модели.",false);
+  }catch(error){
+    console.error("Не удалось запустить AI-модель:",error);
+    setAIStatus(previousStatus==="AI-модель готова"?"AI-модель готова":"Готов к общению");
+    return addMessage("assistant","Я пока не смогла запустить дополнительную AI-модель. Попробуй ещё раз через несколько секунд.");
+  }
+}
+
 let lastSubmittedText="";
 let lastSubmittedAt=0;
 function cleanText(text){
@@ -664,17 +741,10 @@ function conversationReply(text){
     ]));
   }
 
-  return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
-    "Как проходит твоя учёба?",
-    "Чем тебе сейчас нравится заниматься?",
-    "Что тебе обычно нравится делать после школы?",
-    "Как у тебя сегодня прошёл день?",
-    "Есть ли у тебя любимое занятие?",
-    "Что тебе сейчас особенно интересно?"
-  ]));
+  return realAIReply(text);
 }
 
-function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant","Чем могу помочь?");
+function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях я также могу использовать встроенную AI-модель прямо в браузере."); if(activeChat().talkMode){conversationReply(text);return;} return realAIReply(text);
 }
 function submitMessage(rawText){
   const text=cleanText(rawText);
