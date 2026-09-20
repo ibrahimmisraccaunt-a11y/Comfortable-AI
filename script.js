@@ -35,6 +35,7 @@ let state=migrateState(parsedState)||defaultState;
 if(!state.chats.length)state.chats=[...defaultState.chats];
 if(!state.activeChatId||!state.chats.some(c=>c.id===state.activeChatId))state.activeChatId=state.chats[0].id;
 state.chats.forEach(c=>{
+  c.pinned=!!c.pinned;
   const history=Array.isArray(c.riddleHistory)?c.riddleHistory:[];
   const fromMessages=riddles.map((r,i)=>({i,q:normalize(r.q)}))
     .filter(item=>Array.isArray(c.messages)&&c.messages.some(m=>Array.isArray(m)&&m[0]==="assistant"&&normalize(m[1]).includes(item.q)))
@@ -101,6 +102,7 @@ function migrateState(old){
     riddleHistory:Array.isArray(c.riddleHistory)?c.riddleHistory.filter(i=>Number.isInteger(i)):[],
     talkMode:false,
     talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory.filter(q=>typeof q==="string"):[],
+    pinned:!!c.pinned,
   }));
   return {
     ...defaultState,
@@ -148,7 +150,8 @@ function render(){
     const haystack=normalize(item.name+" "+(Array.isArray(item.messages)?item.messages.map(m=>Array.isArray(m)?m[1]:"").join(" "):""));
     return haystack.includes(searchQuery);
   });
-  state.chats.forEach(item=>{
+  const orderedChats=[...state.chats].sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned));
+  orderedChats.forEach(item=>{
     const row=document.createElement("div");
     row.className="chat-row"+(item.id===state.activeChatId?" active":"");
 
@@ -159,6 +162,15 @@ function render(){
 
     const actions=document.createElement("div");
     actions.className="chat-actions";
+
+    const pin=document.createElement("button");
+    pin.className="chat-action";
+    pin.type="button";
+    pin.textContent=item.pinned?"Открепить":"Закрепить";
+    pin.title=item.pinned?"Открепить чат":"Закрепить чат";
+    pin.onclick=(e)=>{e.stopPropagation();item.pinned=!item.pinned;save();render()};
+
+
 
     const rename=document.createElement("button");
     rename.className="chat-action";
@@ -184,7 +196,8 @@ function render(){
           riddle:null,
           riddleHistory:[],
           talkMode:false,
-          talkQuestionHistory:[]
+          talkQuestionHistory:[],
+          pinned:false
         });
       }
       if(!state.chats.some(c=>c.id===state.activeChatId)){
@@ -194,6 +207,7 @@ function render(){
       render();
     };
 
+    actions.appendChild(pin);
     actions.appendChild(rename);
     actions.appendChild(remove);
     row.appendChild(b);
@@ -660,7 +674,7 @@ function submitMessage(rawText){
     }
   },180);
 }
-composer.onsubmit=e=>{e.preventDefault();submitMessage(input.value)};$("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[]};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
+composer.onsubmit=e=>{e.preventDefault();submitMessage(input.value)};$("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[],pinned:false};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
 $("renameChatButton").onclick=()=>{const name=prompt("Название чата:",activeChat().name);if(name&&name.trim()){activeChat().name=name.trim();save();render()}};
 $("nameButton").onclick=()=>{const name=prompt("Как назвать помощника?",state.assistantName);if(name&&name.trim()){state.assistantName=name.trim();save();render();addMessage("assistant","Теперь я буду называться "+state.assistantName+" ")}};
 $("backgroundButton").onclick=()=>openModal("backgroundPanel");$("closeBackground").onclick=()=>closeModal("backgroundPanel");$("uploadBackground").onclick=()=>backgroundInput.click();$("resetBackground").onclick=()=>{state.backgroundType="preset";state.backgroundValue=DEFAULT_BG;save();render()};
