@@ -18,11 +18,11 @@ mint:"linear-gradient(135deg,#dcffe9 0%,#d3fff6 50%,#e7f4ff 100%)",
 pink:"linear-gradient(135deg,#ffe0f1 0%,#ffd7ff 48%,#e5dcff 100%)",
 sky:"linear-gradient(135deg,#e6f4ff 0%,#dff1ff 48%,#f5efff 100%)"
 };
-const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,talkMode:false,talkQuestionHistory:[]}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
+const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[]}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
 const savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v3")||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
 let state=migrateState(JSON.parse(savedData||"null"))||defaultState;
 if(!state.activeChatId)state.activeChatId=state.chats[0].id;
-state.chats.forEach(c=>{c.talkMode=false});
+state.chats.forEach(c=>{c.talkMode=false;c.riddleHistory=Array.isArray(c.riddleHistory)?c.riddleHistory:((c.riddle&&Number.isInteger(c.riddle.index))?[c.riddle.index]:[])});
 
 state.assistantName=cleanText(state.assistantName);
 state.chats.forEach(chat=>{
@@ -52,7 +52,7 @@ function cleanText(text){
     .replace(/\\s{2,}/g," ")
     .trim();
 }
-function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null,talkMode:false,talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory:[]})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
+function migrateState(old){ if(!old||!Array.isArray(old.chats))return null; const chats=old.chats.map(c=>({id:String(c.id??Date.now()+Math.random()),name:cleanText(c.name||"Новый чат"),messages:Array.isArray(c.messages)?c.messages.map(m=>{const pair=Array.isArray(m)?m:[m.role||"assistant",m.text||""];return [pair[0],cleanText(pair[1])]}).filter(m=>m[1]):[],riddle:c.riddle||null,riddleHistory:Array.isArray(c.riddleHistory)?c.riddleHistory:((c.riddle&&Number.isInteger(c.riddle.index))?[c.riddle.index]:[]),talkMode:false,talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory:[]})); return {...defaultState,assistantName:cleanText(old.assistantName||defaultState.assistantName),chats:chats.length?chats:defaultState.chats,activeChatId:String(old.activeChatId??chats[0]?.id??defaultState.chats[0].id),backgroundType:old.backgroundType||defaultState.backgroundType,backgroundValue:old.backgroundValue||defaultState.backgroundValue,voiceEnabled:!!old.voiceEnabled,voiceType:old.voiceType||defaultState.voiceType};
 }
 function save(){
   try{
@@ -117,6 +117,7 @@ function render(){
           name:"Новый чат",
           messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],
           riddle:null,
+          riddleHistory:[],
           talkMode:false,
           talkQuestionHistory:[]
         });
@@ -149,7 +150,29 @@ function applyBackground(){ if(state.backgroundType==="image"){document.body.sty
 }
 function addMessage(role,text,speak=true){text=cleanText(text);const chat=activeChat();const last=chat.messages[chat.messages.length-1];if(role==="assistant"&&last&&last[0]==="assistant"&&last[1]===text)return;chat.messages.push([role,text]);save();render();if(role==="assistant"&&speak)speakText(text)}
 function normalize(text){return text.toLowerCase().replace(/ё/g,"е").trim()}
-function setRiddle(){const chat=activeChat();if(chat.riddle&&chat.riddle.stage==="active")return;const index=Math.floor(Math.random()*riddles.length);chat.riddle={index:index,stage:"active",hintCount:0};addMessage("assistant"," "+riddles[index].q)}
+function setRiddle(){
+  const chat=activeChat();
+  if(chat.riddle&&chat.riddle.stage==="active")return;
+
+  let history=Array.isArray(chat.riddleHistory)?chat.riddleHistory.filter(i=>Number.isInteger(i)&&i>=0&&i<riddles.length):[];
+  const previous=chat.riddle&&Number.isInteger(chat.riddle.index)?chat.riddle.index:null;
+  let available=riddles.map((_,i)=>i).filter(i=>!history.includes(i));
+
+  if(!available.length){
+    history=[];
+    available=riddles.map((_,i)=>i);
+  }
+
+  if(previous!==null&&available.length>1){
+    available=available.filter(i=>i!==previous);
+  }
+
+  const index=available[Math.floor(Math.random()*available.length)];
+  chat.riddleHistory=[...history,index];
+  chat.riddle={index:index,stage:"active",hintCount:0};
+  save();
+  addMessage("assistant"," "+riddles[index].q);
+}
 function currentRiddle(){const stateRiddle=activeChat().riddle;if(!stateRiddle||stateRiddle.stage!=="active")return null;const base=riddles[stateRiddle.index];if(!base)return null;return {...base,index:stateRiddle.index,stage:stateRiddle.stage,hintCount:Number.isFinite(stateRiddle.hintCount)?stateRiddle.hintCount:0}}
 function checkRiddle(text){const r=currentRiddle();if(!r)return false;const answer=normalize(text);if(r.a.some(x=>answer===normalize(x)||answer.includes(normalize(x)))){activeChat().riddle.stage="solved";save();addMessage("assistant","Да! Правильный ответ!");return true}addMessage("assistant","Нет Попробуй ещё раз или напиши «Подсказка».");return true}
 function giveHint(){const chat=activeChat();const r=currentRiddle();if(!r)return addMessage("assistant","Сначала нажми «Загадка», и я загадаю её.");const hintCount=Number.isFinite(chat.riddle.hintCount)?chat.riddle.hintCount:0;const i=Math.min(hintCount,r.h.length-1);chat.riddle.hintCount=hintCount+1;save();return addMessage("assistant",r.h[i]);}
