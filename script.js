@@ -134,23 +134,24 @@ async function realAIReply(userText){
   const previousStatus=document.querySelector(".online")?.textContent||"AI-модель готова";
   try{
     const generator=await getRealAIPipeline();
-    setAIStatus(realAIReady?"AI-модель готова":"Готов к общению");
+    setAIStatus("AI думает...");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:180,
+        max_new_tokens:96,
         do_sample:true,
         temperature:.7,
         top_p:.9
       }),
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),8000))
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),60000))
     ]);
+    setAIStatus("AI-модель готова");
     const answer=extractAIText(output);
     if(answer&&isSaneAIText(answer))return addMessage("assistant",answer);
     return addMessage("assistant","Чем могу помочь?");
   }catch(error){
     console.error("Не удалось получить ответ AI-модели:",error);
     setAIStatus(previousStatus==="AI-модель готова"?"AI-модель готова":"Готов к общению");
-    return addMessage("assistant","Чем могу помочь?");
+    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает дольше обычного. Попробуй ещё раз через несколько секунд.":"Чем могу помочь?");
   }
 }
 
