@@ -161,6 +161,14 @@ const TALK_GENERAL_QUESTIONS=[
   "Что тебе обычно интересно обсуждать?"
 ];
 
+function greetingReply(){
+  const options=[
+    "Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?",
+    "Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?"
+  ];
+  return addMessage("assistant",options[Math.floor(Math.random()*options.length)]);
+}
+
 function askTalkQuestion(chat, options){
   const history=Array.isArray(chat.talkQuestionHistory)?chat.talkQuestionHistory:[];
   const available=options.filter(q=>!history.includes(q));
