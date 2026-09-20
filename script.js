@@ -84,11 +84,55 @@ function render(){
   chatTitle.textContent=chat.name;
   chatList.innerHTML="";
   state.chats.forEach(item=>{
+    const row=document.createElement("div");
+    row.className="chat-row"+(item.id===state.activeChatId?" active":"");
+
     const b=document.createElement("button");
-    b.className="chat-item"+(item.id===state.activeChatId?" active":"");
+    b.className="chat-item";
     b.textContent=item.name;
     b.onclick=()=>{state.activeChatId=item.id;save();render()};
-    chatList.appendChild(b);
+
+    const actions=document.createElement("div");
+    actions.className="chat-actions";
+
+    const rename=document.createElement("button");
+    rename.className="chat-action";
+    rename.type="button";
+    rename.textContent="Переименовать";
+    rename.onclick=(e)=>{e.stopPropagation();const name=prompt("Название чата:",item.name);if(name&&name.trim()){item.name=name.trim();save();render()}};
+
+    const remove=document.createElement("button");
+    remove.className="chat-action delete";
+    remove.type="button";
+    remove.textContent="Удалить";
+    remove.onclick=(e)=>{
+      e.stopPropagation();
+      if(!confirm("Удалить этот чат?"))return;
+      const index=state.chats.findIndex(c=>c.id===item.id);
+      if(index<0)return;
+      state.chats.splice(index,1);
+      if(!state.chats.length){
+        state.chats.push({
+          id:String(Date.now()+Math.random()),
+          name:"Новый чат",
+          messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],
+          riddle:null,
+          talkMode:false,
+          talkQuestionHistory:[]
+        });
+      }
+      if(!state.chats.some(c=>c.id===state.activeChatId)){
+        state.activeChatId=state.chats[0].id;
+      }
+      save();
+      render();
+    };
+
+    actions.appendChild(rename);
+    actions.appendChild(remove);
+    row.appendChild(b);
+    row.appendChild(actions);
+    chatList.appendChild(row);
   });
   messages.innerHTML="";
   chat.messages.forEach(([role,text])=>{
