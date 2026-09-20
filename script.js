@@ -169,6 +169,21 @@ function greetingReply(){
   return addMessage("assistant",options[Math.floor(Math.random()*options.length)]);
 }
 
+function chooseTalkReaction(text){
+  const x=normalize(text);
+  if(/(умер|умерла|умерли|потерял|потеряла|потеряли|сломал|сломала|сломалось|заболел|заболела|плохо|грустно|грусти|обидно|расстро|плачу|плакал|плакала|плакали|не получилось|не вышло|жаль)/.test(x)){
+    return "Ох, как жаль.";
+  }
+  if(/(интересно|необычно|впервые|случилось|представля|знаешь что|расскажу|история|новость|секрет)/.test(x)){
+    return "Ооо, интересно!";
+  }
+  if(/(люблю|нравится|получилось|получил|получила|выиграл|выиграла|успел|успела|научил|научила|купил|купила|подарили|подарил|подарила|класс|здорово|супер)/.test(x)){
+    return "Круто!";
+  }
+  const reactions=["Круто!","Ооо, интересно!","Звучит интересно!"];
+  return reactions[Math.floor(Math.random()*reactions.length)];
+}
+
 function askTalkQuestion(chat, options){
   const history=Array.isArray(chat.talkQuestionHistory)?chat.talkQuestionHistory:[];
   const available=options.filter(q=>!history.includes(q));
@@ -192,7 +207,7 @@ function conversationReply(text){
   const chat=activeChat();
 
   if(x.includes("попуга")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Как зовут твоих попугаев?",
       "Какой у них характер?",
       "Они любят общаться с тобой?",
@@ -200,7 +215,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("корелл")||x.includes("волнист")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Как зовут твою птицу?",
       "Какой у неё характер?",
       "Что она больше всего любит делать?",
@@ -208,7 +223,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("кот")||x.includes("кошк")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Как зовут твою кошку или кота?",
       "Какой у него характер?",
       "Что он больше всего любит делать?",
@@ -216,7 +231,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("собак")||x.includes("пёс")||x.includes("пес")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Как зовут твою собаку?",
       "Какой у неё характер?",
       "Она больше любит играть или гулять?",
@@ -224,7 +239,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("лошад")||x.includes("кон")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Как её зовут?",
       "Какой у неё характер?",
       "Ты часто проводишь с ней время?",
@@ -232,7 +247,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("школ")||x.includes("учеб")||x.includes("урок")||x.includes("учусь")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Как проходит твоя учёба?",
       "Какой предмет тебе нравится больше всего?",
       "Какой урок тебе обычно самый интересный?",
@@ -240,7 +255,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("друг")||x.includes("подруг")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Что вы обычно любите делать вместе?",
       "Давно вы дружите?",
       "О чём вам нравится разговаривать?",
@@ -248,7 +263,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("хобби")||x.includes("увлека")||x.includes("люблю")||x.includes("нравится")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Давно тебе это нравится?",
       "Что тебе в этом нравится больше всего?",
       "Как часто ты этим занимаешься?",
@@ -256,7 +271,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("сегодня")||x.includes("день")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Что сегодня было самым интересным?",
       "Что сегодня тебя больше всего порадовало?",
       "Как прошёл твой день?",
@@ -264,7 +279,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("вчера")||x.includes("позавчера")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Что тебе больше всего запомнилось?",
       "Что было самым интересным?",
       "Что тебе тогда особенно понравилось?",
@@ -272,7 +287,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("выходн")||x.includes("каникул")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Чем тебе нравится заниматься в свободное время?",
       "Что ты обычно делаешь на выходных?",
       "Что тебе хотелось бы сделать на каникулах?",
@@ -280,7 +295,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("готов")||x.includes("приготов")||x.includes("печ")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Какое блюдо тебе больше всего нравится готовить?",
       "Что тебе нравится готовить чаще всего?",
       "Какое блюдо у тебя получается особенно хорошо?",
@@ -288,7 +303,7 @@ function conversationReply(text){
     ]));
   }
   if(x.includes("рис")||x.includes("вяз")||x.includes("шить")||x.includes("твор")){
-    return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+    return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
       "Что тебе больше всего нравится создавать?",
       "Давно ты этим занимаешься?",
       "Что тебе нравится делать чаще всего?",
@@ -296,7 +311,7 @@ function conversationReply(text){
     ]));
   }
 
-  return addMessage("assistant","Круто! "+askTalkQuestion(chat,[
+  return addMessage("assistant",chooseTalkReaction(text)+" " +askTalkQuestion(chat,[
     "Как проходит твоя учёба?",
     "Чем тебе сейчас нравится заниматься?",
     "Что тебе обычно нравится делать после школы?",
