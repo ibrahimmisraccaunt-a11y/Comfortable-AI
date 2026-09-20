@@ -212,6 +212,52 @@ function illnessReply(text){
   return false;
 }
 
+function healthReply(text){
+  const x=normalize(text);
+
+  if(x.includes("горл")){
+    return addMessage("assistant","Если болит горло, обычно помогают отдых, питьё воды и тёплые или прохладные напитки, мягкая еда и отсутствие дыма. Если тяжело дышать или трудно глотать, состояние быстро ухудшается или есть признаки обезвоживания, нужно срочно обратиться за медицинской помощью.");
+  }
+  if(x.includes("живот")||x.includes("животик")||x.includes("животе")){
+    return addMessage("assistant","При боли в животе лучше отдохнуть и понемногу пить воду. Еду выбирай лёгкую, если хочется есть. Если боль сильная или появилась внезапно, живот очень болит при прикосновении, есть кровь в рвоте или стуле, сильная рвота или становится резко хуже, нужна срочная медицинская помощь.");
+  }
+  if(x.includes("голов")||x.includes("голова")){
+    return addMessage("assistant","При обычной головной боли могут помочь вода, отдых, спокойная обстановка и регулярная еда. Стоит сделать перерыв от экрана. Если боль внезапно очень сильная, появилась после травмы головы, есть слабость, онемение, спутанность, проблемы с речью или зрением, судороги или сильная рвота, нужна срочная медицинская помощь.");
+  }
+  if(x.includes("ног")||x.includes("нога")||x.includes("колен")||x.includes("лодыж")||x.includes("стоп")){
+    return addMessage("assistant","Если нога заболела после нагрузки или небольшой травмы, лучше дать ей отдых и не нагружать через сильную боль. Если есть сильный или нарастающий отёк, трудно наступать на ногу, она сильно деформирована, онемела, стала синей или очень холодной, нужно обратиться за срочной медицинской помощью.");
+  }
+  if(x.includes("температур")||x.includes("жар")||x.includes("лихорад")){
+    return addMessage("assistant","При температуре важно отдыхать и пить достаточно жидкости. Следи за самочувствием. Если температура очень высокая, человек становится сонным или спутанным, трудно дышать, есть судороги, сильная сыпь или состояние быстро ухудшается, нужна срочная медицинская помощь.");
+  }
+  if(x.includes("кашл")){
+    return addMessage("assistant","При кашле обычно помогают отдых и достаточное питьё. Избегай дыма и сильных раздражителей. Если трудно дышать, есть боль в груди, кровь при кашле или состояние быстро ухудшается, нужна медицинская помощь.");
+  }
+  if(x.includes("насмор")||x.includes("заложен нос")||x.includes("нос залож")){
+    return addMessage("assistant","При насморке помогают отдых, питьё и промывание носа физиологическим раствором. Если становится трудно дышать, появляется сильная боль или состояние заметно ухудшается, лучше обратиться к врачу.");
+  }
+  if(x.includes("ух")||x.includes("ухо")||x.includes("уши")){
+    return addMessage("assistant","При боли в ухе лучше сообщить взрослому и обратиться к врачу, особенно если боль сильная, есть выделения из уха, высокая температура или ухудшился слух. Не стоит самостоятельно засовывать что-либо в ухо.");
+  }
+  if(x.includes("зуб")||x.includes("зубы")){
+    return addMessage("assistant","При зубной боли лучше как можно скорее обратиться к стоматологу. До осмотра можно аккуратно прополоскать рот водой и не жевать больной стороной. Если быстро растёт отёк лица или становится трудно дышать или глотать, нужна срочная помощь.");
+  }
+  if(x.includes("тошнит")||x.includes("тошнот")){
+    return addMessage("assistant","При тошноте лучше отдыхать и пить жидкость маленькими глотками. Если не получается удерживать воду, есть кровь в рвоте, сильная боль в животе или состояние ухудшается, нужна медицинская помощь.");
+  }
+  if(x.includes("рвот")){
+    return addMessage("assistant","При рвоте важно понемногу пить, чтобы не допустить обезвоживания. Если рвота повторяется и вода не удерживается, есть кровь, зелёная рвота, сильная боль в животе или сильная вялость, нужна срочная медицинская помощь.");
+  }
+  if(x.includes("диаре")||x.includes("понос")){
+    return addMessage("assistant","При диарее главное — пить достаточно жидкости маленькими порциями и отдыхать. Если есть кровь в стуле, сильная боль, выраженное обезвоживание или диарея долго не проходит, нужна медицинская помощь.");
+  }
+  if(x.includes("сып")||x.includes("пятн")||x.includes("высып")){
+    return addMessage("assistant","При новой сыпи лучше сообщить взрослому и наблюдать за самочувствием. Если сыпь не бледнеет при надавливании и одновременно есть высокая температура, сильная вялость, проблемы с дыханием или быстрое ухудшение, нужна срочная медицинская помощь.");
+  }
+
+  return false;
+}
+
 function conversationReply(text){
   const x=normalize(text);
   const chat=activeChat();
@@ -331,7 +377,7 @@ function conversationReply(text){
   ]));
 }
 
-function ordinaryReply(text){ const x=normalize(text); if(x==="я заболела"||x.includes(" я заболела ")||x.startsWith("я заболела "))return addMessage("assistant","Ох, как жаль. Да исцелит тебя Аллах. А что у тебя конкретно болит? Я хочу помочь.");if(illnessReply(text))return; if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;save();return greetingReply();} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return greetingReply(); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant","Чем могу помочь?");
+function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(x==="я заболела"||x.includes(" я заболела ")||x.startsWith("я заболела "))return addMessage("assistant","Ох, как жаль. Да исцелит тебя Аллах. А что у тебя конкретно болит? Я хочу помочь.");if(illnessReply(text))return; if(currentRiddle()&&!["подсказка","дай подсказку","намек","подскажи","я сдаюсь","сдаюсь"].some(k=>x===k||x.includes(k))){if(checkRiddle(text))return} if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;save();return greetingReply();} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся"))return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!"); if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет"))return greetingReply(); if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant","Чем могу помочь?");
 }
 composer.onsubmit=e=>{
   e.preventDefault();
