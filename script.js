@@ -112,24 +112,37 @@ function extractAIText(output){
   return "";
 }
 
+let realAILoadFailed=false;
+function startRealAILoad(){
+  if(realAIReady||realAIPipelinePromise||realAILoadFailed)return;
+  getRealAIPipeline().catch(()=>{realAILoadFailed=true;});
+}
+
 async function realAIReply(userText){
-  const previousStatus=document.querySelector(".online")?.textContent||"Готов к общению";
+  if(!realAIReady){
+    startRealAILoad();
+    return addMessage("assistant","Чем могу помочь?");
+  }
+  const previousStatus=document.querySelector(".online")?.textContent||"AI-модель готова";
   try{
     const generator=await getRealAIPipeline();
     setAIStatus(realAIReady?"AI-модель готова":"Готов к общению");
-    const output=await generator(buildAIConversation(userText),{
-      max_new_tokens:180,
-      do_sample:true,
-      temperature:.7,
-      top_p:.9
-    });
+    const output=await Promise.race([
+      generator(buildAIConversation(userText),{
+        max_new_tokens:180,
+        do_sample:true,
+        temperature:.7,
+        top_p:.9
+      }),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),8000))
+    ]);
     const answer=extractAIText(output);
     if(answer)return addMessage("assistant",answer);
-    return addMessage("assistant","Не получилось получить ответ от AI-модели.",false);
+    return addMessage("assistant","Чем могу помочь?");
   }catch(error){
-    console.error("Не удалось запустить AI-модель:",error);
+    console.error("Не удалось получить ответ AI-модели:",error);
     setAIStatus(previousStatus==="AI-модель готова"?"AI-модель готова":"Готов к общению");
-    return addMessage("assistant","Я пока не смогла запустить дополнительную AI-модель. Попробуй ещё раз через несколько секунд.");
+    return addMessage("assistant","Чем могу помочь?");
   }
 }
 
