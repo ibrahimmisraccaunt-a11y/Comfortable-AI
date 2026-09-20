@@ -57,7 +57,7 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const REAL_AI_MODEL="onnx-community/Qwen2.5-0.5B-Instruct";
+const REAL_AI_MODEL="av-codes/Supra-50M-Instruct-ONNX";
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
@@ -73,7 +73,7 @@ async function getRealAIPipeline(){
     setAIStatus("Загрузка AI-модели...");
     const {pipeline}=await import(REAL_AI_IMPORT);
     const webgpu=!!navigator.gpu;
-    const options=webgpu?{dtype:"q4",device:"webgpu"}:{dtype:"q4"};
+    const options={dtype:"q8"};
     const generator=await pipeline("text-generation",REAL_AI_MODEL,options);
     realAIReady=true;
     setAIStatus("AI-модель готова");
