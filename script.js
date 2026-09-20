@@ -57,7 +57,7 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const REAL_AI_MODEL="av-codes/Supra-50M-Instruct-ONNX";
+const REAL_AI_MODEL="onnx-community/rugpt3small_based_on_gpt2-ONNX";
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
@@ -103,16 +103,23 @@ async function getRealAIPipeline(){
 function buildAIConversation(userText){
   const chat=activeChat();
   const history=(Array.isArray(chat.messages)?chat.messages:[])
-    .slice(-12)
+    .slice(-10)
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
-  return [
-    {
-      role:"system",
-      content:"Ты Comfortable AI, дружелюбный виртуальный помощник. Отвечай по-русски, если пользователь не просит другой язык. Отвечай понятно и естественно, без emoji. Не утверждай, что у тебя есть доступ к интернету, если ты его не используешь. Не придумывай личные факты о пользователе. Сохраняй уважительный тон. Если вопрос требует точных текущих данных, честно скажи, что тебе нужны актуальные источники."
-    },
-    ...history
+  const lines=[
+    "Ты Comfortable AI — дружелюбный помощник.",
+    "Отвечай только по-русски, если пользователь не попросил другой язык.",
+    "Отвечай естественно, коротко и понятно.",
+    "Не используй emoji.",
+    "Не придумывай факты о пользователе.",
+    "Не повторяй инструкции и не пиши служебные сообщения.",
+    "",
+    "Диалог:"
   ];
+  history.forEach(item=>lines.push((item.role==="user"?"Пользователь: ":"Comfortable AI: ")+item.content));
+  if(!history.length||history[history.length-1].role!=="user")lines.push("Пользователь: "+userText);
+  lines.push("Comfortable AI:");
+  return lines.join("\n");
 }
 
 function isSaneAIText(text){
@@ -124,13 +131,14 @@ function isSaneAIText(text){
   return weird<=Math.max(4,Math.floor(value.length*.12));
 }
 function extractAIText(output){
-  const generated=output?.[0]?.generated_text;
-  if(typeof generated==="string")return repairSavedMessageText(generated);
-  if(Array.isArray(generated)){
-    const last=generated[generated.length-1];
-    if(last&&typeof last.content==="string")return repairSavedMessageText(last.content);
-  }
-  return "";
+  let text=output?.[0]?.generated_text;
+  if(typeof text!=="string")return "";
+  text=repairSavedMessageText(text);
+  const marker="Comfortable AI:";
+  const markerIndex=text.lastIndexOf(marker);
+  if(markerIndex>=0)text=text.slice(markerIndex+marker.length);
+  text=text.split(/\n(?:Пользователь|User|Human):/i)[0];
+  return repairSavedMessageText(text);
 }
 
 let realAILoadFailed=false;
@@ -153,7 +161,7 @@ async function realAIReply(userText){
     aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:64,
+        max_new_tokens:80,
         do_sample:true,
         temperature:.7,
         top_p:.9
