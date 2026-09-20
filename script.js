@@ -62,26 +62,39 @@ const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8
 let realAIPipelinePromise=null;
 let realAIReady=false;
 
+function aiLog(...args){
+  console.log("[Comfortable AI]",...args);
+}
+function aiError(...args){
+  console.error("[Comfortable AI]",...args);
+}
 function setAIStatus(text){
   const status=document.querySelector(".online");
   if(status)status.textContent=text;
+  aiLog("STATUS:",text);
 }
 
 async function getRealAIPipeline(){
   if(realAIPipelinePromise)return realAIPipelinePromise;
   realAIPipelinePromise=(async()=>{
     setAIStatus("Загрузка AI-модели...");
+    aiLog("Начинаю загрузку модели:",REAL_AI_MODEL);
+    aiLog("Transformers.js:",REAL_AI_IMPORT);
+    aiLog("WebGPU доступен:",!!navigator.gpu);
     const {pipeline}=await import(REAL_AI_IMPORT);
-    const webgpu=!!navigator.gpu;
+    aiLog("Transformers.js загружен");
     const options={dtype:"q8"};
+    aiLog("Параметры модели:",options);
     const generator=await pipeline("text-generation",REAL_AI_MODEL,options);
     realAIReady=true;
     setAIStatus("AI-модель готова");
+    aiLog("Модель полностью готова");
     return generator;
   })().catch(error=>{
     realAIPipelinePromise=null;
     realAIReady=false;
-    setAIStatus("Готов к общению");
+    setAIStatus("Ошибка загрузки AI");
+    aiError("ОШИБКА ЗАГРУЗКИ МОДЕЛИ:",error);
     throw error;
   });
   return realAIPipelinePromise;
@@ -127,17 +140,20 @@ function startRealAILoad(){
 }
 
 async function realAIReply(userText){
+  aiLog("Запрос пользователя:",userText);
+  aiLog("Состояние модели перед ответом:",{realAIReady,loading:!!realAIPipelinePromise,loadFailed:realAILoadFailed});
   if(!realAIReady){
     startRealAILoad();
-    return addMessage("assistant","Чем могу помочь?");
+    return addMessage("assistant","AI-модель ещё загружается. Подожди немного и отправь сообщение ещё раз.");
   }
   const previousStatus=document.querySelector(".online")?.textContent||"AI-модель готова";
   try{
     const generator=await getRealAIPipeline();
     setAIStatus("AI думает...");
+    aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:96,
+        max_new_tokens:64,
         do_sample:true,
         temperature:.7,
         top_p:.9
@@ -145,13 +161,16 @@ async function realAIReply(userText){
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),60000))
     ]);
     setAIStatus("AI-модель готова");
+    aiLog("Генерация завершена:",output);
     const answer=extractAIText(output);
+    aiLog("Извлечённый ответ:",answer);
     if(answer&&isSaneAIText(answer))return addMessage("assistant",answer);
-    return addMessage("assistant","Чем могу помочь?");
+    aiError("Модель вернула пустой или некорректный ответ");
+    return addMessage("assistant","Модель пока не смогла сформировать ответ. Попробуй ещё раз.");
   }catch(error){
-    console.error("Не удалось получить ответ AI-модели:",error);
-    setAIStatus(previousStatus==="AI-модель готова"?"AI-модель готова":"Готов к общению");
-    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает дольше обычного. Попробуй ещё раз через несколько секунд.":"Чем могу помочь?");
+    aiError("ОШИБКА ОТВЕТА МОДЕЛИ:",error);
+    setAIStatus(realAIReady?"AI-модель готова":"Ошибка AI");
+    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает дольше обычного. Попробуй ещё раз через несколько секунд.":"AI-модель не смогла ответить. Открой Console и посмотри сообщение с [Comfortable AI].");
   }
 }
 
@@ -839,4 +858,7 @@ function chooseVoice(){if(!("speechSynthesis"in window))return null;const voices
 function speakText(text){if(!state.voiceEnabled||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ru-RU";u.rate=state.voiceType==="child"?1.08:.96;u.pitch=state.voiceType==="female"?1.05:state.voiceType==="child"?1.3:.88;u.volume=1;const voice=chooseVoice();if(voice)u.voice=voice;speechSynthesis.speak(u)}
 document.querySelectorAll(".quick-actions button").forEach(b=>{b.type="button";b.onclick=()=>submitMessage(b.dataset.text)});
 document.querySelectorAll(".help-card").forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==="talk"){activeChat().talkMode=true;activeChat().talkQuestionHistory=[];save();return addMessage("assistant","О чём расскажешь?");}if(a==="riddle")return setRiddle();if(a==="story")return story();if(a==="help")return giveHint()});
-if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};render();
+if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};
+render();
+aiLog("Приложение запущено. Модель:",REAL_AI_MODEL);
+startRealAILoad();
