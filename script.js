@@ -61,6 +61,25 @@ const REAL_AI_MODEL="onnx-community/Qwen2.5-1.5B-Instruct";
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
+let aiLoadProgress=0;
+
+function setAILoadProgress(percent,text){
+  aiLoadProgress=Math.max(0,Math.min(100,Number(percent)||0));
+  const bar=$("aiLoadBar"), label=$("aiLoadLabel"), value=$("aiLoadPercent");
+  if(bar)bar.style.width=aiLoadProgress+"%";
+  if(value)value.textContent=Math.round(aiLoadProgress)+"%";
+  if(label&&text)label.textContent=text;
+}
+
+function setChatLocked(locked){
+  if(input)input.disabled=locked;
+  const send=$("composer")?.querySelector('button[type="submit"]');
+  if(send)send.disabled=locked;
+  document.querySelectorAll(".quick-actions button,.help-card").forEach(button=>button.disabled=locked);
+  $("composer")?.classList.toggle("locked",locked);
+  $("aiLoadingPanel")?.classList.toggle("hidden",!locked);
+  $("aiLoadingPanel")?.setAttribute("aria-hidden",locked?"false":"true");
+}
 
 function aiLog(...args){
   console.log("[Comfortable AI]",...args);
@@ -78,6 +97,8 @@ async function getRealAIPipeline(){
   if(realAIPipelinePromise)return realAIPipelinePromise;
   realAIPipelinePromise=(async()=>{
     setAIStatus("Загрузка AI-модели...");
+    setChatLocked(true);
+    setAILoadProgress(0,"Подготовка AI-модели...");
     aiLog("Начинаю загрузку модели:",REAL_AI_MODEL);
     aiLog("Transformers.js:",REAL_AI_IMPORT);
     aiLog("WebGPU доступен:",!!navigator.gpu);
@@ -85,27 +106,42 @@ async function getRealAIPipeline(){
     aiLog("Transformers.js загружен");
     let generator;
     if(navigator.gpu){
-      const options={dtype:"q4f16",device:"webgpu"};
+      const options={dtype:"q4f16",device:"webgpu",progress_callback:info=>{
+        if(info?.status==="progress"&&typeof info.progress==="number"){
+          setAILoadProgress(Math.max(aiLoadProgress,info.progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+        }
+      }};
       aiLog("Пробую WebGPU:",options);
       try{
         generator=await pipeline("text-generation",REAL_AI_MODEL,options);
       }catch(webgpuError){
         aiError("WebGPU не запустился, пробую обычный режим:",webgpuError);
-        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8"});
+        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",progress_callback:info=>{
+          if(info?.status==="progress"&&typeof info.progress==="number"){
+            setAILoadProgress(Math.max(aiLoadProgress,info.progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+          }
+        }});
       }
     }else{
-      const options={dtype:"q8"};
+      const options={dtype:"q8",progress_callback:info=>{
+        if(info?.status==="progress"&&typeof info.progress==="number"){
+          setAILoadProgress(Math.max(aiLoadProgress,info.progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+        }
+      }};
       aiLog("WebGPU недоступен, использую обычный режим:",options);
       generator=await pipeline("text-generation",REAL_AI_MODEL,options);
     }
     realAIReady=true;
+    setAILoadProgress(100,"Модель готова");
     setAIStatus("AI-модель готова");
+    setChatLocked(false);
     aiLog("Модель полностью готова");
     return generator;
   })().catch(error=>{
     realAIPipelinePromise=null;
     realAIReady=false;
     setAIStatus("Ошибка загрузки AI");
+    setAILoadProgress(aiLoadProgress,"Не удалось загрузить модель");
     aiError("ОШИБКА ЗАГРУЗКИ МОДЕЛИ:",error);
     throw error;
   });
@@ -814,6 +850,7 @@ function conversationReply(text){
 function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях я также могу использовать встроенную AI-модель прямо в браузере."); if(activeChat().talkMode){conversationReply(text);return;} return realAIReply(text);
 }
 function submitMessage(rawText){
+  if(!realAIReady)return;
   const text=cleanText(rawText);
   if(!text)return;
   const now=Date.now();
