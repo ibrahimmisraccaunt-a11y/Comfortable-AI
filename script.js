@@ -174,20 +174,88 @@ async function getRealAIPipeline(){
   return realAIPipelinePromise;
 }
 
-function buildAIConversation(userText){
+function buildAIConversation(userText,knowledge=null){
   const chat=activeChat();
   const history=(Array.isArray(chat.messages)?chat.messages:[])
     .slice(-12)
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
   if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userText});
-  return [
-    {
+  const systemMessages=[{
+    role:"system",
+    content:"Ты Comfortable AI — универсальный дружелюбный помощник. Отвечай на вопросы по-русски, если пользователь не попросил другой язык. Старайся отвечать прямо на сам вопрос: объясняй понятными словами, при необходимости давай пример, шаги, причины, сравнение или краткое определение. Для сложного вопроса структурируй ответ. Не выдумывай конкретные факты. Если ниже дана справочная информация, используй её как источник и не противоречь ей. Если информации недостаточно, честно скажи, чего не хватает. Не повторяй вопрос пользователя, не пиши служебные сообщения и не используй emoji."
+  }];
+  if(knowledge?.extract){
+    systemMessages.push({
       role:"system",
-      content:"Ты Comfortable AI — умный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Всегда отвечай на сам вопрос пользователя. Не отвечай одним словом, если вопрос требует объяснения. Для простого вопроса дай 2–4 понятных предложения с конкретным объяснением и примером, когда это уместно. Не уходи от темы, не повторяй вопрос и не пиши служебные сообщения. Не используй emoji. Не придумывай факты о пользователе."
-    },
-    ...history
+      content:"Справочная информация из Wikipedia:\n"+knowledge.extract.slice(0,5000)+"\nЗаголовок: "+knowledge.title
+    });
+  }
+  return [...systemMessages,...history];
+}
+function shouldUseWikipedia(text){
+  const x=normalize(text);
+  if(!x||x.length<6)return false;
+  if(x==="как дела"||x==="привет"||x==="пока"||x.includes("джазакилляху")||x.includes("спасибо"))return false;
+  const patterns=[
+    "что такое","кто такой","кто такая","кто это","где находится","где расположен","где расположена",
+    "когда родился","когда родилась","когда умер","когда основан","когда основана","почему",
+    "как работает","как устроен","что означает","что значит","какой","какая","какое","какие",
+    "сколько лет","сколько","история","биография"
   ];
+  return text.includes("?")||patterns.some(p=>x.includes(p));
+}
+function getWikiQuery(text){
+  return cleanText(String(text||""))
+    .replace(/\b(пожалуйста|можешь|можно|расскажи|объясни|скажи)\b/gi," ")
+    .replace(/[?!.]+$/g,"")
+    .trim()
+    .slice(0,180);
+}
+async function fetchWikipediaContext(userText){
+  if(!shouldUseWikipedia(userText))return null;
+  const query=getWikiQuery(userText);
+  if(!query)return null;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),5000);
+  const languages=/[A-Za-z]/.test(query)&&!/[А-Яа-яЁё]/.test(query) ? ["en","ru"] : ["ru","en"];
+  try{
+    for(const lang of languages){
+      try{
+        const searchUrl="https://"+lang+".wikipedia.org/w/api.php?action=query&list=search&srsearch="+encodeURIComponent(query)+"&utf8=1&format=json&origin=*&srlimit=1";
+        const searchResponse=await fetch(searchUrl,{signal:controller.signal});
+        if(!searchResponse.ok)continue;
+        const searchData=await searchResponse.json();
+        const title=searchData?.query?.search?.[0]?.title;
+        if(!title)continue;
+        const pageUrl="https://"+lang+".wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles="+encodeURIComponent(title)+"&format=json&origin=*";
+        const pageResponse=await fetch(pageUrl,{signal:controller.signal});
+        if(!pageResponse.ok)continue;
+        const pageData=await pageResponse.json();
+        const pages=pageData?.query?.pages||{};
+        const page=Object.values(pages)[0];
+        const extract=cleanText(page?.extract||"");
+        if(extract)return {title:String(title),extract,lang};
+      }catch(error){
+        if(error?.name==="AbortError")break;
+      }
+    }
+  }finally{
+    clearTimeout(timer);
+  }
+  return null;
+}
+function calculateSimpleExpression(text){
+  const raw=cleanText(text).replace(/^(сколько будет|посчитай|вычисли|реши)\s*/i,"").trim();
+  if(!raw||raw.length>90)return null;
+  if(!/^[0-9+\-*/().,%\s^]+$/.test(raw))return null;
+  const normalized=raw.replace(/,/g,".").replace(/(\d+(?:\.\d+)?)\s*%/g,"($1/100)").replace(/\^/g,"**");
+  if(!/^[0-9+\-*/().\s*]+$/.test(normalized))return null;
+  try{
+    const result=Function('"use strict"; return ('+normalized+');')();
+    if(typeof result!=="number"||!Number.isFinite(result))return null;
+    return Number.isInteger(result)?String(result):String(Number(result.toFixed(10)));
+  }catch(error){return null;}
 }
 function isSaneAIText(text){
   const value=cleanText(text);
@@ -232,18 +300,31 @@ async function realAIReply(userText){
     startRealAILoad();
     return addMessage("assistant","AI-модель ещё загружается. Подожди немного и отправь сообщение ещё раз.");
   }
-  const previousStatus=document.querySelector(".online")?.textContent||"AI-модель готова";
+  const mathAnswer=calculateSimpleExpression(userText);
+  if(mathAnswer!==null){
+    return addMessage("assistant","Ответ: "+mathAnswer);
+  }
+  let knowledge=null;
+  try{
+    if(shouldUseWikipedia(userText)){
+      setAIStatus("Ищу справочную информацию...");
+      knowledge=await fetchWikipediaContext(userText);
+      if(knowledge)aiLog("Найдена справка Wikipedia:",knowledge.title);
+    }
+  }catch(error){
+    aiError("Ошибка поиска справочной информации:",error);
+  }
   try{
     const generator=await getRealAIPipeline();
-    setAIStatus("AI думает...");
+    setAIStatus(knowledge?"Готовлю ответ по найденной информации...":"AI думает...");
     aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
-      generator(buildAIConversation(userText),{
-        max_new_tokens:128,
+      generator(buildAIConversation(userText,knowledge),{
+        max_new_tokens:160,
         do_sample:true,
-        temperature:.7,
-        top_p:.8,
-        top_k:20,
+        temperature:.65,
+        top_p:.85,
+        top_k:30,
         repetition_penalty:1.05,
         no_repeat_ngram_size:3
       }),
@@ -255,11 +336,19 @@ async function realAIReply(userText){
     aiLog("Извлечённый ответ:",answer);
     if(answer&&isSaneAIText(answer))return addMessage("assistant",answer);
     aiError("Модель вернула пустой или некорректный ответ");
-    return addMessage("assistant","Модель пока не смогла сформировать ответ. Попробуй ещё раз.");
+    if(knowledge?.extract){
+      const fallback=knowledge.extract.slice(0,900);
+      return addMessage("assistant",knowledge.title+": "+fallback+(knowledge.extract.length>900?"...":""));
+    }
+    return addMessage("assistant","Я не смогла уверенно сформировать ответ. Попробуй сформулировать вопрос немного по-другому.");
   }catch(error){
     aiError("ОШИБКА ОТВЕТА МОДЕЛИ:",error);
     setAIStatus(realAIReady?"AI-модель готова":"Ошибка AI");
-    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает дольше обычного. Попробуй ещё раз через несколько секунд.":"AI-модель не смогла ответить. Открой Console и посмотри сообщение с [Comfortable AI].");
+    if(knowledge?.extract){
+      const fallback=knowledge.extract.slice(0,900);
+      return addMessage("assistant",knowledge.title+": "+fallback+(knowledge.extract.length>900?"...":""));
+    }
+    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает дольше обычного. Попробуй ещё раз через несколько секунд.":"AI-модель не смогла ответить.");
   }
 }
 
