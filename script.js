@@ -57,7 +57,7 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const REAL_AI_MODEL="onnx-community/Qwen2.5-0.5B-Instruct";
+const REAL_AI_MODEL="onnx-community/Qwen3-0.6B-Instruct-ONNX";
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
@@ -122,7 +122,7 @@ function buildAIConversation(userText){
   return [
     {
       role:"system",
-      content:"Ты Comfortable AI — умный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Всегда отвечай на сам вопрос пользователя. Не отвечай одним словом, если вопрос требует объяснения. Для простого вопроса дай 2–4 понятных предложения с конкретным объяснением и примером, когда это уместно. Не уходи от темы, не повторяй вопрос и не пиши служебные сообщения. Не используй emoji. Не придумывай факты о пользователе."
+      content:"Ты Comfortable AI — умный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. /no_think. Всегда отвечай на сам вопрос пользователя. Не отвечай одним словом, если вопрос требует объяснения. Для простого вопроса дай 2–4 понятных предложения с конкретным объяснением и примером, когда это уместно. Не уходи от темы, не повторяй вопрос и не пиши служебные сообщения. Не используй emoji. Не придумывай факты о пользователе."
     },
     ...history
   ];
@@ -177,8 +177,11 @@ async function realAIReply(userText){
     aiLog("Начинаю генерацию ответа");
     const output=await Promise.race([
       generator(buildAIConversation(userText),{
-        max_new_tokens:96,
-        do_sample:false,
+        max_new_tokens:128,
+        do_sample:true,
+        temperature:.7,
+        top_p:.8,
+        top_k:20,
         repetition_penalty:1.05,
         no_repeat_ngram_size:3
       }),
