@@ -63,7 +63,7 @@ const AI_MODELS={
   large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu"}
 };
 const DEFAULT_AI_MODEL_KEY="small";
-const AI_MODEL_PREF_VERSION="3";
+const AI_MODEL_PREF_VERSION="4";
 let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
 try{
   const storedAIModel=localStorage.getItem(AI_MODEL_STORAGE_KEY);
@@ -135,58 +135,46 @@ function setAIStatus(text){
 async function getRealAIPipeline(){
   if(realAIPipelinePromise)return realAIPipelinePromise;
   realAIPipelinePromise=(async()=>{
-    const modelInfo=AI_MODELS[selectedAIModelKey];
-    setAIStatus("Загрузка "+modelInfo.label+"...");
+    const primary=AI_MODELS.small;
+    selectedAIModelKey="small";
+    try{
+      localStorage.setItem(AI_MODEL_STORAGE_KEY,"small");
+      localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
+    }catch(error){}
+    setAIStatus("Загрузка "+primary.label+"...");
     setChatLocked(true);
-    setAILoadProgress(0,"Подготовка "+modelInfo.label+" ("+modelInfo.size+")...");
-    aiLog("Начинаю загрузку модели:",REAL_AI_MODEL);
-    aiLog("Transformers.js:",REAL_AI_IMPORT);
-    aiLog("WebGPU доступен:",!!navigator.gpu);
+    setAILoadProgress(0,"Подготовка "+primary.label+" ("+primary.size+")...");
+    aiLog("Запускаю стабильную модель:",primary.id);
     const {pipeline}=await import(REAL_AI_IMPORT);
-    aiLog("Transformers.js загружен");
-    let generator;
-    const progressOptions={progress_callback:handleAIProgress};
-    if(modelInfo.device==="wasm"){
-      const options={dtype:modelInfo.dtype,device:"wasm",...progressOptions};
-      aiLog("Использую стабильный режим без WebGPU:",options);
-      generator=await pipeline("text-generation",REAL_AI_MODEL,options);
-    }else if(modelInfo.device==="webgpu" && navigator.gpu){
-      const options={dtype:modelInfo.dtype,device:"webgpu",...progressOptions};
-      aiLog("Пробую WebGPU:",options);
+    let generator=null;
+    let lastError=null;
+
+    const attempts=[
+      {dtype:"q8",label:"Загрузка q8-модели..."},
+      {dtype:"q4",label:"Пробую более лёгкий режим..."},
+      {label:"Использую стандартный режим Transformers.js..."}
+    ];
+
+    for(const attempt of attempts){
       try{
-        const webgpuPromise=pipeline("text-generation",REAL_AI_MODEL,options);
+        setAIStatus(attempt.label);
+        setAILoadProgress(Math.min(aiLoadProgress,95),attempt.label);
+        const options={progress_callback:handleAIProgress};
+        if(attempt.dtype)options.dtype=attempt.dtype;
+        aiLog("Попытка запуска:",options);
         generator=await Promise.race([
-          webgpuPromise,
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error("WEBGPU_INIT_TIMEOUT")),25000))
+          pipeline("text-generation",primary.id,options),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error("MODEL_INIT_TIMEOUT")),90000))
         ]);
-      }catch(webgpuError){
-        aiError("Qwen 1.5B не запустилась через WebGPU:",webgpuError);
-        setAIStatus("Переключаюсь на лёгкую модель...");
-        setAILoadProgress(Math.max(aiLoadProgress,96),"Qwen 1.5B не запустилась, запускаю Qwen 0.5B...");
-        const fallback=AI_MODELS.small;
-        try{
-          generator=await pipeline("text-generation",fallback.id,{dtype:fallback.dtype,device:fallback.device,progress_callback:handleAIProgress});
-          selectedAIModelKey="small";
-          try{
-            localStorage.setItem(AI_MODEL_STORAGE_KEY,"small");
-            localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
-          }catch(storageError){}
-          aiLog("Автоматически переключилась на Qwen2.5-0.5B-Instruct");
-        }catch(fallbackError){
-          aiError("Не удалось запустить и лёгкую модель:",fallbackError);
-          throw fallbackError;
-        }
+        break;
+      }catch(error){
+        lastError=error;
+        aiError("Попытка запуска модели не удалась:",error);
       }
-    }else{
-      const fallback=AI_MODELS.small;
-      setAIStatus("WebGPU недоступен, запускаю лёгкую модель...");
-      generator=await pipeline("text-generation",fallback.id,{dtype:fallback.dtype,device:fallback.device,progress_callback:handleAIProgress});
-      selectedAIModelKey="small";
-      try{
-        localStorage.setItem(AI_MODEL_STORAGE_KEY,"small");
-        localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
-      }catch(storageError){}
     }
+
+    if(!generator)throw lastError||new Error("MODEL_INIT_FAILED");
+
     realAIReady=true;
     setAILoadProgress(100,"Модель готова");
     setAIStatus("AI-модель готова");
@@ -197,9 +185,10 @@ async function getRealAIPipeline(){
     realAIPipelinePromise=null;
     realAIReady=false;
     setAIStatus("Ошибка загрузки AI");
-    setAILoadProgress(aiLoadProgress,"Не удалось загрузить модель");
-    aiError("ОШИБКА ЗАГРУЗКИ МОДЕЛИ:",error);
+    aiLoadProgress=0;
+    setAILoadProgress(0,"Не удалось загрузить модель");
     setChatLocked(false);
+    aiError("ОШИБКА ЗАГРУЗКИ МОДЕЛИ:",error);
     throw error;
   });
   return realAIPipelinePromise;
