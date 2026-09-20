@@ -164,7 +164,7 @@ function render(){
     actions.className="chat-actions";
 
     const pin=document.createElement("button");
-    pin.className="chat-action";
+    pin.className="chat-action pin";
     pin.type="button";
     pin.textContent=item.pinned?"Открепить":"Закрепить";
     pin.title=item.pinned?"Открепить чат":"Закрепить чат";
