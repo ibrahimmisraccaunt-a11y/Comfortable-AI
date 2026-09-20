@@ -93,7 +93,6 @@ function buildAIConversation(userText){
     .slice(-12)
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
-  history.push({role:"user",content:userText});
   return [
     {
       role:"system",
