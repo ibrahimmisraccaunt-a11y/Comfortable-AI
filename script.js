@@ -57,19 +57,50 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const REAL_AI_MODEL="onnx-community/Qwen2.5-1.5B-Instruct";
+const AI_MODEL_STORAGE_KEY="comfortable-ai-model";
+const AI_MODELS={
+  small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈483 МБ"},
+  large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ"}
+};
+const DEFAULT_AI_MODEL_KEY="small";
+let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
+try{
+  const storedAIModel=localStorage.getItem(AI_MODEL_STORAGE_KEY);
+  if(storedAIModel&&AI_MODELS[storedAIModel])selectedAIModelKey=storedAIModel;
+}catch(error){
+  console.warn("Не удалось прочитать выбор AI-модели:",error);
+}
+const REAL_AI_MODEL=AI_MODELS[selectedAIModelKey].id;
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
 let aiLoadProgress=0;
 
+function normalizeAIProgress(value){
+  const n=Number(value);
+  if(!Number.isFinite(n))return null;
+  if(n>=0&&n<=1)return n*100;
+  return Math.max(0,Math.min(100,n));
+}
 function setAILoadProgress(percent,text){
-  aiLoadProgress=Math.max(0,Math.min(100,Number(percent)||0));
+  const normalized=normalizeAIProgress(percent);
+  if(normalized!==null)aiLoadProgress=Math.max(0,Math.min(100,normalized));
   const bar=$("aiLoadBar"), label=$("aiLoadLabel"), value=$("aiLoadPercent"), remaining=$("aiLoadRemaining");
   if(bar)bar.style.width=aiLoadProgress+"%";
   if(value)value.textContent=Math.round(aiLoadProgress)+"%";
   if(remaining)remaining.textContent="Осталось: "+Math.max(0,100-Math.round(aiLoadProgress))+"%";
   if(label&&text)label.textContent=text;
+}
+function handleAIProgress(info){
+  if(!info)return;
+  let progress=normalizeAIProgress(info.progress);
+  if(progress===null && Number.isFinite(Number(info.loaded)) && Number.isFinite(Number(info.total)) && Number(info.total)>0){
+    progress=Number(info.loaded)/Number(info.total)*100;
+  }
+  if(progress!==null){
+    if(info.status==="progress")setAILoadProgress(Math.max(aiLoadProgress,progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
+    else if(info.status==="initiate")setAILoadProgress(Math.max(aiLoadProgress,1),info.file?("Подготовка: "+String(info.file).split("/").pop()):"Подготовка модели...");
+  }
 }
 
 function setChatLocked(locked){
@@ -97,9 +128,10 @@ function setAIStatus(text){
 async function getRealAIPipeline(){
   if(realAIPipelinePromise)return realAIPipelinePromise;
   realAIPipelinePromise=(async()=>{
-    setAIStatus("Загрузка AI-модели...");
+    const modelInfo=AI_MODELS[selectedAIModelKey];
+    setAIStatus("Загрузка "+modelInfo.label+"...");
     setChatLocked(true);
-    setAILoadProgress(0,"Подготовка AI-модели...");
+    setAILoadProgress(0,"Подготовка "+modelInfo.label+" ("+modelInfo.size+")...");
     aiLog("Начинаю загрузку модели:",REAL_AI_MODEL);
     aiLog("Transformers.js:",REAL_AI_IMPORT);
     aiLog("WebGPU доступен:",!!navigator.gpu);
@@ -107,34 +139,16 @@ async function getRealAIPipeline(){
     aiLog("Transformers.js загружен");
     let generator;
     if(navigator.gpu){
-      const options={dtype:"q4f16",device:"webgpu",progress_callback:info=>{
-        if(info?.status==="progress"&&typeof info.progress==="number"){
-          {
-            const progress=typeof info.progress==="number"?info.progress:aiLoadProgress;
-            setAILoadProgress(progress,info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
-          }
-        }
-      }};
+      const options={dtype:"q4f16",device:"webgpu",progress_callback:handleAIProgress};
       aiLog("Пробую WebGPU:",options);
       try{
         generator=await pipeline("text-generation",REAL_AI_MODEL,options);
       }catch(webgpuError){
         aiError("WebGPU не запустился, пробую обычный режим:",webgpuError);
-        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",progress_callback:info=>{
-          if(info?.status==="progress"&&typeof info.progress==="number"){
-            {
-              const progress=typeof info.progress==="number"?info.progress:aiLoadProgress;
-              setAILoadProgress(progress,info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
-            }
-          }
-        }});
+        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",progress_callback:handleAIProgress});
       }
     }else{
-      const options={dtype:"q8",progress_callback:info=>{
-        if(info?.status==="progress"&&typeof info.progress==="number"){
-          setAILoadProgress(Math.max(aiLoadProgress,info.progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
-        }
-      }};
+      const options={dtype:"q8",progress_callback:handleAIProgress};
       aiLog("WebGPU недоступен, использую обычный режим:",options);
       generator=await pipeline("text-generation",REAL_AI_MODEL,options);
     }
@@ -899,10 +913,34 @@ $("resetSettings").onclick=()=>{
   state.backgroundValue=DEFAULT_BG;
   state.voiceEnabled=false;
   state.voiceType="female";
+  selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
+  try{localStorage.setItem(AI_MODEL_STORAGE_KEY,selectedAIModelKey)}catch(error){console.warn("Не удалось сохранить сброс модели:",error)}
   save();
   render();
   updateSettingsSummary();
 };
+function settingsModelLabel(){
+  const info=AI_MODELS[selectedAIModelKey]||AI_MODELS[DEFAULT_AI_MODEL_KEY];
+  return info.label+" · "+info.size;
+}
+function syncModelPanel(){
+  document.querySelectorAll("[data-model-choice]").forEach(button=>{
+    const active=button.dataset.modelChoice===selectedAIModelKey;
+    button.style.fontWeight=active?"800":"inherit";
+    button.querySelector("span:last-child").textContent=active?"Выбрана":"Выбрать";
+  });
+}
+$("settingsModel").onclick=()=>{syncModelPanel();closeModal("settingsPanel");openModal("modelPanel")};
+$("closeModel").onclick=()=>closeModal("modelPanel");
+document.querySelectorAll("[data-model-choice]").forEach(button=>button.onclick=()=>{
+  const key=button.dataset.modelChoice;
+  if(!AI_MODELS[key])return;
+  if(key===selectedAIModelKey){closeModal("modelPanel");return;}
+  selectedAIModelKey=key;
+  try{localStorage.setItem(AI_MODEL_STORAGE_KEY,key)}catch(error){console.warn("Не удалось сохранить выбор модели:",error)}
+  closeModal("modelPanel");
+  location.reload();
+});
 $("voiceButton").onclick=()=>openModal("voicePanel");$("closeVoice").onclick=()=>closeModal("voicePanel");$("voiceEnabled").onchange=e=>{state.voiceEnabled=e.target.checked;save()};document.querySelectorAll("[data-voice]").forEach(b=>b.onclick=()=>{state.voiceType=b.dataset.voice;save()});$("testVoice").onclick=()=>speakText("Ассаляму алейкум! Я проверяю выбранный голос.");
 function settingsBackgroundLabel(){
   if(state.backgroundType==="image")return "Своя картинка";
@@ -915,10 +953,11 @@ function settingsVoiceLabel(){
   return "Включена, "+(names[state.voiceType]||"Женский").toLowerCase();
 }
 function updateSettingsSummary(){
-  const nameValue=$("settingsNameValue"), backgroundValue=$("settingsBackgroundValue"), voiceValue=$("settingsVoiceValue");
+  const nameValue=$("settingsNameValue"), backgroundValue=$("settingsBackgroundValue"), voiceValue=$("settingsVoiceValue"), modelValue=$("settingsModelValue");
   if(nameValue)nameValue.textContent=state.assistantName||"Comfortable AI";
   if(backgroundValue)backgroundValue.textContent=settingsBackgroundLabel();
   if(voiceValue)voiceValue.textContent=settingsVoiceLabel();
+  if(modelValue)modelValue.textContent=settingsModelLabel();
 }
 function openSettings(){
   updateSettingsSummary();
