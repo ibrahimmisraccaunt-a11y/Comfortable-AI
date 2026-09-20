@@ -163,6 +163,7 @@ async function realAIReply(userText){
       generator(buildAIConversation(userText),{
         max_new_tokens:80,
         do_sample:true,
+        no_repeat_ngram_size:3,
         temperature:.7,
         top_p:.9
       }),
