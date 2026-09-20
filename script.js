@@ -651,7 +651,42 @@ $("backgroundButton").onclick=()=>openModal("backgroundPanel");$("closeBackgroun
 backgroundInput.onchange=()=>{const file=backgroundInput.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const max=1500,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,canvas.width,canvas.height);state.backgroundType="image";state.backgroundValue=canvas.toDataURL("image/jpeg",.78);save();render();closeModal("backgroundPanel")};img.src=reader.result};reader.readAsDataURL(file)};
 document.querySelectorAll("[data-bg]").forEach(b=>b.onclick=()=>{state.backgroundType="preset";state.backgroundValue=b.dataset.bg;save();render()});
 $("capabilitiesButton").onclick=()=>openModal("capabilitiesPanel");$("closeCapabilities").onclick=()=>closeModal("capabilitiesPanel");
+$("settingsButton").onclick=openSettings;
+$("closeSettings").onclick=()=>closeModal("settingsPanel");
+$("settingsName").onclick=()=>{closeModal("settingsPanel");$("nameButton").click()};
+$("settingsBackground").onclick=()=>{closeModal("settingsPanel");$("backgroundButton").click()};
+$("settingsVoice").onclick=()=>{closeModal("settingsPanel");$("voiceButton").click()};
+$("resetSettings").onclick=()=>{
+  state.assistantName="Comfortable AI";
+  state.backgroundType="preset";
+  state.backgroundValue=DEFAULT_BG;
+  state.voiceEnabled=false;
+  state.voiceType="female";
+  save();
+  render();
+  updateSettingsSummary();
+};
 $("voiceButton").onclick=()=>openModal("voicePanel");$("closeVoice").onclick=()=>closeModal("voicePanel");$("voiceEnabled").onchange=e=>{state.voiceEnabled=e.target.checked;save()};document.querySelectorAll("[data-voice]").forEach(b=>b.onclick=()=>{state.voiceType=b.dataset.voice;save()});$("testVoice").onclick=()=>speakText("Ассаляму алейкум! Я проверяю выбранный голос.");
+function settingsBackgroundLabel(){
+  if(state.backgroundType==="image")return "Своя картинка";
+  const names={lavender:"Лавандовый",sunset:"Закат",ocean:"Океан",mint:"Мятный",pink:"Розовый",sky:"Небесный"};
+  return names[state.backgroundValue]||"Лавандовый";
+}
+function settingsVoiceLabel(){
+  if(!state.voiceEnabled)return "Выключена";
+  const names={female:"Женский",male:"Мужской",child:"Детский"};
+  return "Включена, "+(names[state.voiceType]||"Женский").toLowerCase();
+}
+function updateSettingsSummary(){
+  const nameValue=$("settingsNameValue"), backgroundValue=$("settingsBackgroundValue"), voiceValue=$("settingsVoiceValue");
+  if(nameValue)nameValue.textContent=state.assistantName||"Comfortable AI";
+  if(backgroundValue)backgroundValue.textContent=settingsBackgroundLabel();
+  if(voiceValue)voiceValue.textContent=settingsVoiceLabel();
+}
+function openSettings(){
+  updateSettingsSummary();
+  openModal("settingsPanel");
+}
 function openModal(id){$(id).classList.remove("hidden");$(id).setAttribute("aria-hidden","false")}function closeModal(id){$(id).classList.add("hidden");$(id).setAttribute("aria-hidden","true")}
 function chooseVoice(){if(!("speechSynthesis"in window))return null;const voices=speechSynthesis.getVoices()||[],ru=voices.filter(v=>v.lang.toLowerCase().startsWith("ru"));if(!ru.length)return null;const words=state.voiceType==="female"?["female","woman","milena","alena","svetlana","irina","katya","yelena"]:state.voiceType==="male"?["male","man","pavel","alexander","dmitry","yuri"]:["child","kid","girl","boy","junior"];return ru.find(v=>words.some(w=>v.name.toLowerCase().includes(w)))||ru[0]}
 function speakText(text){if(!state.voiceEnabled||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ru-RU";u.rate=state.voiceType==="child"?1.08:.96;u.pitch=state.voiceType==="female"?1.05:state.voiceType==="child"?1.3:.88;u.volume=1;const voice=chooseVoice();if(voice)u.voice=voice;speechSynthesis.speak(u)}
