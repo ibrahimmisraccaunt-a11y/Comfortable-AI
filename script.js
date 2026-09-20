@@ -61,7 +61,8 @@ function save(){
       c.messages=(Array.isArray(c.messages)?c.messages:[])
         .map(([role,text])=>[role==="user"?"user":"assistant",cleanText(text)])
         .filter(([,text])=>text&&text!=="undefined")
-        .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.");
+        .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.")
+        .filter((item,index,arr)=>!(item[0]==="assistant"&&arr[index-1]?.[0]==="assistant"&&arr[index-1]?.[1]?.startsWith("Ох, как жаль. Да исцелит тебя Аллах.")));
     });
     state.assistantName=cleanText(state.assistantName||defaultState.assistantName);
     localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
