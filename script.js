@@ -57,7 +57,7 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const REAL_AI_MODEL="onnx-community/Qwen3-0.6B-Instruct-ONNX";
+const REAL_AI_MODEL="onnx-community/Qwen2.5-1.5B-Instruct";
 const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
@@ -119,9 +119,6 @@ function buildAIConversation(userText){
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
   if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userText});
-  if(history[history.length-1]?.role==="user"){
-    history.push({role:"assistant",content:"<think>\n\n</think>\n\n"});
-  }
   return [
     {
       role:"system",
