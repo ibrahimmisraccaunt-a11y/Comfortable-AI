@@ -59,11 +59,12 @@ clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.f
 
 const AI_MODEL_STORAGE_KEY="comfortable-ai-model";
 const AI_MODELS={
-  small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈512 МБ",dtype:"q8",device:"wasm"},
-  large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu"}
+  smart:{id:"onnx-community/Qwen3-1.7B-ONNX",label:"Qwen3-1.7B-ONNX",size:"≈1,43 ГБ",dtype:"q4f16",device:"webgpu",thinking:true},
+  small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈512 МБ",dtype:"q8",device:"wasm",thinking:false},
+  large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu",thinking:false}
 };
-const DEFAULT_AI_MODEL_KEY="small";
-const AI_MODEL_PREF_VERSION="4";
+const DEFAULT_AI_MODEL_KEY="smart";
+const AI_MODEL_PREF_VERSION="5";
 let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
 try{
   const storedAIModel=localStorage.getItem(AI_MODEL_STORAGE_KEY);
@@ -78,7 +79,6 @@ try{
   console.warn("Не удалось прочитать выбор AI-модели:",error);
 }
 const REAL_AI_MODEL=AI_MODELS[selectedAIModelKey].id;
-const REAL_AI_IMPORT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 let realAIPipelinePromise=null;
 let realAIReady=false;
 let aiLoadProgress=0;
@@ -135,51 +135,49 @@ function setAIStatus(text){
 async function getRealAIPipeline(){
   if(realAIPipelinePromise)return realAIPipelinePromise;
   realAIPipelinePromise=(async()=>{
-    const primary=AI_MODELS.small;
-    selectedAIModelKey="small";
-    try{
-      localStorage.setItem(AI_MODEL_STORAGE_KEY,"small");
-      localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
-    }catch(error){}
-    setAIStatus("Загрузка "+primary.label+"...");
+    const model=AI_MODELS[selectedAIModelKey];
+    setAIStatus("Загрузка "+model.label+"...");
     setChatLocked(true);
-    setAILoadProgress(0,"Подготовка "+primary.label+" ("+primary.size+")...");
-    aiLog("Запускаю стабильную модель:",primary.id);
+    setAILoadProgress(0,"Подготовка "+model.label+" ("+model.size+")...");
+    aiLog("Запускаю модель:",model.id);
     const {pipeline}=await import(REAL_AI_IMPORT);
     let generator=null;
     let lastError=null;
+    const progressOptions={progress_callback:handleAIProgress};
 
-    const attempts=[
-      {dtype:"q8",label:"Загрузка q8-модели..."},
-      {dtype:"q4",label:"Пробую более лёгкий режим..."},
-      {label:"Использую стандартный режим Transformers.js..."}
-    ];
+    const attempts=[];
+    if(model.device==="webgpu"&&navigator.gpu){
+      attempts.push({dtype:model.dtype,device:"webgpu",label:"Запускаю WebGPU..."});
+    }
+    attempts.push({dtype:model.dtype,device:"wasm",label:"Запускаю совместимый режим..."});
+    if(model.device==="webgpu"&&model.dtype!=="q8"){
+      attempts.push({dtype:"q8",device:"wasm",label:"Пробую резервный q8-режим..."});
+    }
 
     for(const attempt of attempts){
       try{
         setAIStatus(attempt.label);
-        setAILoadProgress(Math.min(aiLoadProgress,95),attempt.label);
-        const options={progress_callback:handleAIProgress};
-        if(attempt.dtype)options.dtype=attempt.dtype;
+        setAILoadProgress(Math.max(aiLoadProgress,1),attempt.label);
+        const options={...attempt,...progressOptions};
+        delete options.label;
         aiLog("Попытка запуска:",options);
         generator=await Promise.race([
-          pipeline("text-generation",primary.id,options),
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error("MODEL_INIT_TIMEOUT")),90000))
+          pipeline("text-generation",model.id,options),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error("MODEL_INIT_TIMEOUT")),120000))
         ]);
         break;
       }catch(error){
         lastError=error;
-        aiError("Попытка запуска модели не удалась:",error);
+        aiError("Попытка запуска не удалась:",error);
       }
     }
 
     if(!generator)throw lastError||new Error("MODEL_INIT_FAILED");
-
     realAIReady=true;
     setAILoadProgress(100,"Модель готова");
     setAIStatus("AI-модель готова");
     setChatLocked(false);
-    aiLog("Модель полностью готова");
+    aiLog("Модель полностью готова:",model.id);
     return generator;
   })().catch(error=>{
     realAIPipelinePromise=null;
@@ -197,18 +195,21 @@ async function getRealAIPipeline(){
 function buildAIConversation(userText,knowledge=null){
   const chat=activeChat();
   const history=(Array.isArray(chat.messages)?chat.messages:[])
-    .slice(-12)
+    .slice(-14)
     .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
     .filter(item=>item.content);
-  if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userText});
+  const complexQuestion=/\b(реши|докажи|доказательство|вычисли|посчитай|математ|логичес|алгоритм|код|программ|почему|объясни подробно|сравни|проанализируй|разбери|задач[аиуы]|proof|solve|calculate|code|programming)\b/i.test(userText);
+  const model=AI_MODELS[selectedAIModelKey]||AI_MODELS[DEFAULT_AI_MODEL_KEY];
+  const userContent=model.thinking ? ((complexQuestion?"/think\n":"/no_think\n")+userText) : userText;
+  if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userContent});
   const systemMessages=[{
     role:"system",
-    content:"Ты Comfortable AI — универсальный дружелюбный помощник. Отвечай на вопросы по-русски, если пользователь не попросил другой язык. Старайся отвечать прямо на сам вопрос: объясняй понятными словами, при необходимости давай пример, шаги, причины, сравнение или краткое определение. Для сложного вопроса структурируй ответ. Не выдумывай конкретные факты. Если ниже дана справочная информация, используй её как источник и не противоречь ей. Если информации недостаточно, честно скажи, чего не хватает. Не повторяй вопрос пользователя, не пиши служебные сообщения и не используй emoji."
+    content:"Ты Comfortable AI — универсальный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Умей отвечать на широкий круг вопросов: знания, наука, история, математика, логика, программирование, объяснения, обучение, переводы, тексты, идеи и обычный разговор. Всегда отвечай именно на вопрос пользователя. Для простого вопроса отвечай кратко и понятно; для сложного — по шагам. Не уходи от темы. Не выдумывай факты, источники или действия, которых не выполнял. Если точного ответа не знаешь, честно скажи об этом. Если дана справочная информация, используй её как источник и не противоречь ей. Не повторяй вопрос, не пиши служебные сообщения и не используй emoji."
   }];
   if(knowledge?.extract){
     systemMessages.push({
       role:"system",
-      content:"Справочная информация из Wikipedia:\n"+knowledge.extract.slice(0,5000)+"\nЗаголовок: "+knowledge.title
+      content:"Справочная информация из Wikipedia:\n"+knowledge.extract.slice(0,6000)+"\nЗаголовок: "+knowledge.title
     });
   }
   return [...systemMessages,...history];
@@ -281,15 +282,15 @@ function isSaneAIText(text){
   const value=cleanText(text);
   if(!value)return false;
   const letters=(value.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;
-  const weird=(value.match(/[^\p{L}\p{N}\s.,!?;:"«»()\-—'’]/gu)||[]).length;
-  if(letters<3)return false;
   const words=value.split(/\s+/).filter(Boolean);
-  if(words.length<3)return false;
-  const russianLetters=(value.match(/[А-Яа-яЁё]/g)||[]).length;
-  if(russianLetters<Math.min(8,Math.ceil(letters*.35)))return false;
-  const suspicious=(value.match(/(?:бил|бил|аль|баль|бья|ляха|модульная)/gi)||[]).length;
-  if(suspicious>=3)return false;
-  return weird<=Math.max(4,Math.floor(value.length*.12));
+  if(letters<3||words.length<2)return false;
+  const weird=(value.match(/[^\p{L}\p{N}\s.,!?;:"«»()\-—'’%+=*/_]/gu)||[]).length;
+  if(weird>Math.max(8,Math.floor(value.length*.18)))return false;
+  const normalizedWords=words.map(w=>w.toLowerCase().replace(/[^a-zа-яё0-9]/gi,"")).filter(Boolean);
+  const counts=new Map();
+  for(const word of normalizedWords)counts.set(word,(counts.get(word)||0)+1);
+  if(words.length<40&&[...counts.values()].some(n=>n>=5))return false;
+  return true;
 }
 function extractAIText(output){
   const generated=output?.[0]?.generated_text;
@@ -315,15 +316,14 @@ function startRealAILoad(){
 
 async function realAIReply(userText){
   aiLog("Запрос пользователя:",userText);
-  aiLog("Состояние модели перед ответом:",{realAIReady,loading:!!realAIPipelinePromise,loadFailed:realAILoadFailed});
+  aiLog("Состояние модели перед ответом:",{realAIReady,loading:!!realAIPipelinePromise,loadFailed:realAILoadFailed,model:selectedAIModelKey});
   if(!realAIReady){
     startRealAILoad();
     return addMessage("assistant","AI-модель ещё загружается. Подожди немного и отправь сообщение ещё раз.");
   }
   const mathAnswer=calculateSimpleExpression(userText);
-  if(mathAnswer!==null){
-    return addMessage("assistant","Ответ: "+mathAnswer);
-  }
+  if(mathAnswer!==null)return addMessage("assistant","Ответ: "+mathAnswer);
+
   let knowledge=null;
   try{
     if(shouldUseWikipedia(userText)){
@@ -334,33 +334,42 @@ async function realAIReply(userText){
   }catch(error){
     aiError("Ошибка поиска справочной информации:",error);
   }
+
+  const model=AI_MODELS[selectedAIModelKey]||AI_MODELS[DEFAULT_AI_MODEL_KEY];
+  const complexQuestion=/\b(реши|докажи|доказательство|вычисли|посчитай|математ|логичес|алгоритм|код|программ|почему|объясни подробно|сравни|проанализируй|разбери|задач[аиуы]|proof|solve|calculate|code|programming)\b/i.test(userText);
   try{
     const generator=await getRealAIPipeline();
     setAIStatus(knowledge?"Готовлю ответ по найденной информации...":"AI думает...");
-    aiLog("Начинаю генерацию ответа");
-    const output=await Promise.race([
-      generator(buildAIConversation(userText,knowledge),{
-        max_new_tokens:160,
-        do_sample:true,
-        temperature:.65,
-        top_p:.85,
-        top_k:30,
-        repetition_penalty:1.05,
-        no_repeat_ngram_size:3
-      }),
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),60000))
+    const generationOptions={
+      max_new_tokens:complexQuestion?280:180,
+      do_sample:true,
+      temperature:complexQuestion&&model.thinking?.6:.7,
+      top_p:complexQuestion&&model.thinking?.95:.85,
+      top_k:20,
+      repetition_penalty:1.05,
+      no_repeat_ngram_size:3
+    };
+    let output=await Promise.race([
+      generator(buildAIConversation(userText,knowledge),generationOptions),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),120000))
     ]);
-    setAIStatus("AI-модель готова");
-    aiLog("Генерация завершена:",output);
-    const answer=extractAIText(output);
+    let answer=extractAIText(output);
     aiLog("Извлечённый ответ:",answer);
+    if(!answer||!isSaneAIText(answer)){
+      aiLog("Первый ответ не прошёл проверку, повторяю запрос");
+      output=await Promise.race([
+        generator(buildAIConversation(userText,knowledge),{...generationOptions,temperature:.55,top_p:.8,max_new_tokens:180}),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),120000))
+      ]);
+      answer=extractAIText(output);
+    }
+    setAIStatus("AI-модель готова");
     if(answer&&isSaneAIText(answer))return addMessage("assistant",answer);
-    aiError("Модель вернула пустой или некорректный ответ");
     if(knowledge?.extract){
       const fallback=knowledge.extract.slice(0,900);
       return addMessage("assistant",knowledge.title+": "+fallback+(knowledge.extract.length>900?"...":""));
     }
-    return addMessage("assistant","Я не смогла уверенно сформировать ответ. Попробуй сформулировать вопрос немного по-другому.");
+    return addMessage("assistant","Не получилось уверенно сформировать ответ. Переформулируй вопрос немного по-другому.");
   }catch(error){
     aiError("ОШИБКА ОТВЕТА МОДЕЛИ:",error);
     setAIStatus(realAIReady?"AI-модель готова":"Ошибка AI");
@@ -368,7 +377,7 @@ async function realAIReply(userText){
       const fallback=knowledge.extract.slice(0,900);
       return addMessage("assistant",knowledge.title+": "+fallback+(knowledge.extract.length>900?"...":""));
     }
-    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает дольше обычного. Попробуй ещё раз через несколько секунд.":"AI-модель не смогла ответить.");
+    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает слишком долго. Попробуй ещё раз через несколько секунд.":"AI-модель не смогла ответить.");
   }
 }
 
