@@ -369,6 +369,10 @@ composer.onsubmit=e=>{
   input.value="";
   setTimeout(()=>{
     try{
+      const x=normalize(text);
+      if(x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")||x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")){
+        return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");
+      }
       ordinaryReply(text);
     }catch(error){
       console.error(error);
