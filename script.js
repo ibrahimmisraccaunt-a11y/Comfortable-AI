@@ -62,11 +62,18 @@ const AI_MODELS={
   small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈512 МБ",dtype:"q8",device:"wasm"},
   large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu"}
 };
-const DEFAULT_AI_MODEL_KEY="small";
+const DEFAULT_AI_MODEL_KEY="large";
+const AI_MODEL_PREF_VERSION="2";
 let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
 try{
   const storedAIModel=localStorage.getItem(AI_MODEL_STORAGE_KEY);
-  if(storedAIModel&&AI_MODELS[storedAIModel])selectedAIModelKey=storedAIModel;
+  const storedModelVersion=localStorage.getItem(AI_MODEL_STORAGE_KEY+"-version");
+  if(storedModelVersion===AI_MODEL_PREF_VERSION&&storedAIModel&&AI_MODELS[storedAIModel]){
+    selectedAIModelKey=storedAIModel;
+  }else{
+    localStorage.setItem(AI_MODEL_STORAGE_KEY,DEFAULT_AI_MODEL_KEY);
+    localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
+  }
 }catch(error){
   console.warn("Не удалось прочитать выбор AI-модели:",error);
 }
@@ -1008,7 +1015,10 @@ $("resetSettings").onclick=()=>{
   state.voiceEnabled=false;
   state.voiceType="female";
   selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
-  try{localStorage.setItem(AI_MODEL_STORAGE_KEY,selectedAIModelKey)}catch(error){console.warn("Не удалось сохранить сброс модели:",error)}
+  try{
+    localStorage.setItem(AI_MODEL_STORAGE_KEY,selectedAIModelKey);
+    localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
+  }catch(error){console.warn("Не удалось сохранить сброс модели:",error)}
   save();
   render();
   updateSettingsSummary();
@@ -1031,7 +1041,10 @@ document.querySelectorAll("[data-model-choice]").forEach(button=>button.onclick=
   if(!AI_MODELS[key])return;
   if(key===selectedAIModelKey){closeModal("modelPanel");return;}
   selectedAIModelKey=key;
-  try{localStorage.setItem(AI_MODEL_STORAGE_KEY,key)}catch(error){console.warn("Не удалось сохранить выбор модели:",error)}
+  try{
+    localStorage.setItem(AI_MODEL_STORAGE_KEY,key);
+    localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
+  }catch(error){console.warn("Не удалось сохранить выбор модели:",error)}
   closeModal("modelPanel");
   location.reload();
 });
