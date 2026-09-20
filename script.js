@@ -235,6 +235,32 @@ function applyBackground(){ if(state.backgroundType==="image"){document.body.sty
 }
 function addMessage(role,text,speak=true){text=role==="assistant"?repairSavedMessageText(text):cleanText(text);const chat=activeChat();const last=chat.messages[chat.messages.length-1];if(role==="assistant"&&last&&last[0]==="assistant"&&last[1]===text)return;chat.messages.push([role,text]);save();render();if(role==="assistant"&&speak)speakText(text)}
 function normalize(text){return text.toLowerCase().replace(/ё/g,"е").trim()}
+function editDistance(a,b){
+  const prev=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+    const cur=[i];
+    cur[0]=i;
+    for(let j=1;j<=b.length;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+cost);
+    }
+    for(let j=0;j<cur.length;j++)prev[j]=cur[j];
+  }
+  return prev[b.length];
+}
+function typoMatch(text,words,maxDistance=1){
+  const value=normalize(text);
+  const tokens=value.split(/[^a-zа-я0-9]+/).filter(Boolean);
+  return words.some(word=>{
+    const target=normalize(word);
+    return tokens.some(token=>{
+      if(token===target)return true;
+      if(target.length<5||token.length<target.length-1||token.length>target.length+1)return false;
+      return editDistance(token,target)<=maxDistance;
+    });
+  });
+}
+
 function setRiddle(){
   const chat=activeChat();
   if(chat.riddle&&chat.riddle.stage==="active"){
@@ -648,7 +674,7 @@ function conversationReply(text){
   ]));
 }
 
-function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(x.includes("дурак")||x.includes("туп")||x.includes("идиот"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant","Чем могу помочь?");
+function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. "); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant","Чем могу помочь?");
 }
 function submitMessage(rawText){
   const text=cleanText(rawText);
