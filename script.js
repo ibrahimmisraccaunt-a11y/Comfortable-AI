@@ -59,8 +59,8 @@ clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.f
 
 const AI_MODEL_STORAGE_KEY="comfortable-ai-model";
 const AI_MODELS={
-  small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈483 МБ"},
-  large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ"}
+  small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈512 МБ",dtype:"q8",device:"wasm"},
+  large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu"}
 };
 const DEFAULT_AI_MODEL_KEY="small";
 let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
@@ -138,18 +138,24 @@ async function getRealAIPipeline(){
     const {pipeline}=await import(REAL_AI_IMPORT);
     aiLog("Transformers.js загружен");
     let generator;
-    if(navigator.gpu){
-      const options={dtype:"q4f16",device:"webgpu",progress_callback:handleAIProgress};
+    const modelInfo=AI_MODELS[selectedAIModelKey];
+    const progressOptions={progress_callback:handleAIProgress};
+    if(modelInfo.device==="wasm"){
+      const options={dtype:modelInfo.dtype,device:"wasm",...progressOptions};
+      aiLog("Использую стабильный режим без WebGPU:",options);
+      generator=await pipeline("text-generation",REAL_AI_MODEL,options);
+    }else if(modelInfo.device==="webgpu" && navigator.gpu){
+      const options={dtype:modelInfo.dtype,device:"webgpu",...progressOptions};
       aiLog("Пробую WebGPU:",options);
       try{
         generator=await pipeline("text-generation",REAL_AI_MODEL,options);
       }catch(webgpuError){
-        aiError("WebGPU не запустился, пробую обычный режим:",webgpuError);
-        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",progress_callback:handleAIProgress});
+        aiError("WebGPU не запустился, перехожу на q8:",webgpuError);
+        generator=await pipeline("text-generation",REAL_AI_MODEL,{dtype:"q8",device:"wasm",...progressOptions});
       }
     }else{
-      const options={dtype:"q8",progress_callback:handleAIProgress};
-      aiLog("WebGPU недоступен, использую обычный режим:",options);
+      const options={dtype:"q8",device:"wasm",...progressOptions};
+      aiLog("WebGPU недоступен, использую WASM:",options);
       generator=await pipeline("text-generation",REAL_AI_MODEL,options);
     }
     realAIReady=true;
