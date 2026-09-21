@@ -57,85 +57,141 @@ save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
 const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 /* ===== Comfortable AI model fallback ===== */
-const AI_MODELS = [
-  { name:"Qwen2.5 0.5B", id:"onnx-community/Qwen2.5-0.5B-Instruct", dtype:"q4f16" },
-  { name:"Qwen2.5 0.5B (q4 fallback)", id:"onnx-community/Qwen2.5-0.5B-Instruct", dtype:"q4" },
-  { name:"SmolLM2 360M (резерв)", id:"HuggingFaceTB/SmolLM2-360M-Instruct", dtype:"q4" }
+const AI_MODELS=[
+  {name:"Qwen2.5 0.5B — WebGPU q4f16",id:"onnx-community/Qwen2.5-0.5B-Instruct",dtype:"q4f16",device:"webgpu"},
+  {name:"Qwen2.5 0.5B — WebGPU q4",id:"onnx-community/Qwen2.5-0.5B-Instruct",dtype:"q4",device:"webgpu"},
+  {name:"Qwen2.5 0.5B — WASM q4",id:"onnx-community/Qwen2.5-0.5B-Instruct",dtype:"q4",device:"wasm"},
+  {name:"SmolLM2 360M — WebGPU q4",id:"HuggingFaceTB/SmolLM2-360M-Instruct",dtype:"q4",device:"webgpu"},
+  {name:"SmolLM2 360M — WASM q4",id:"HuggingFaceTB/SmolLM2-360M-Instruct",dtype:"q4",device:"wasm"}
 ];
-let aiGenerator=null, aiModelIndex=-1, aiLoading=false, aiFailed=false;
-function setAIStatus(text){const el=$("aiStatus");if(el)el.textContent="AI: "+text}
-async function loadAIModel(){
-  if(aiGenerator||aiLoading||aiFailed)return aiGenerator;
+let aiGenerator=null,aiModelIndex=-1,aiLoading=false,aiFailed=false,aiReady=false;
+
+function setAIStatus(text){
+  const el=$("aiStatus");
+  if(el)el.textContent="AI: "+cleanText(text);
+}
+
+async function loadAIModel(startIndex=0){
+  if(aiGenerator)return aiGenerator;
+  if(aiLoading)return null;
+  if(aiFailed&&startIndex===0)return null;
   aiLoading=true;
-  setAIStatus("загрузка модели…");
-  try{
-    const t=window.ComfortableAITransformers;
-    if(!t?.pipeline)throw new Error("Transformers.js ещё не готов");
-    for(let i=0;i<AI_MODELS.length;i++){
-      const m=AI_MODELS[i];
-      try{
-        setAIStatus("загрузка "+m.name+"…");
-        aiGenerator=await t.pipeline("text-generation",m.id,{dtype:m.dtype,device:"webgpu",progress_callback:p=>{
-          if(p?.progress!=null)setAIStatus("загрузка "+m.name+" — "+Math.round(p.progress)+"%");
-        }});
-        aiModelIndex=i;
-        setAIStatus("готова: "+m.name);
-        aiLoading=false;
-        return aiGenerator;
-      }catch(firstError){
-        console.warn("Модель не загрузилась:",m.name,firstError);
-        try{
-          if(m.dtype!=="q4"){
-            setAIStatus("повторная попытка "+m.name+"…");
-            aiGenerator=await t.pipeline("text-generation",m.id,{dtype:"q4",device:"wasm",progress_callback:p=>{
-              if(p?.progress!=null)setAIStatus("загрузка "+m.name+" — "+Math.round(p.progress)+"%");
-            }});
-            aiModelIndex=i;
-            setAIStatus("готова: "+m.name+" (резервный режим)");
-            aiLoading=false;
-            return aiGenerator;
-          }
-        }catch(secondError){console.warn("Резервный режим не загрузился:",secondError)}
-      }
-    }
-    aiFailed=true;
-    setAIStatus("модели недоступны — работают встроенные ответы");
-  }catch(error){
-    console.error("AI loader error:",error);
-    aiFailed=true;
-    setAIStatus("модель недоступна — работают встроенные ответы");
+  aiFailed=false;
+  const t=window.ComfortableAITransformers;
+  if(!t?.pipeline){
+    aiLoading=false;
+    setAIStatus("модуль AI ещё загружается");
+    return null;
   }
+
+  for(let i=Math.max(0,startIndex);i<AI_MODELS.length;i++){
+    const model=AI_MODELS[i];
+    try{
+      setAIStatus("загрузка "+model.name+"…");
+      const generator=await t.pipeline("text-generation",model.id,{
+        dtype:model.dtype,
+        device:model.device,
+        progress_callback:p=>{
+          if(Number.isFinite(p?.progress)){
+            setAIStatus("загрузка "+model.name+" — "+Math.round(p.progress)+"%");
+          }
+        }
+      });
+      if(!generator)throw new Error("pipeline вернул пустое значение");
+      aiGenerator=generator;
+      aiModelIndex=i;
+      aiReady=true;
+      aiLoading=false;
+      setAIStatus("готова");
+      return aiGenerator;
+    }catch(error){
+      console.warn("Не удалось загрузить AI-модель:",model.name,error);
+      aiGenerator=null;
+      aiReady=false;
+    }
+  }
+
+  aiFailed=true;
   aiLoading=false;
+  setAIStatus("локальная модель недоступна — работают встроенные ответы");
   return null;
 }
+
+function extractGeneratedText(result){
+  let value=Array.isArray(result)?result[0]?.generated_text??result[0]?.text??result[0]:result?.generated_text??result?.text??result;
+  if(Array.isArray(value)){
+    const assistant=value.filter(item=>item&&item.role==="assistant").pop();
+    value=assistant?.content??value.map(item=>item?.content??item?.text??"").filter(Boolean).join(" ");
+  }else if(value&&typeof value==="object"){
+    value=value.content??value.text??"";
+  }
+  return cleanText(String(value??""));
+}
+
 async function generateWithAI(userText){
-  const generator=aiGenerator||await loadAIModel();
+  let generator=aiGenerator;
+  if(!generator){
+    const nextIndex=aiModelIndex>=0?aiModelIndex+1:0;
+    generator=await loadAIModel(nextIndex);
+  }
   if(!generator)return null;
+
   const prompt=[
-    {role:"system",content:"Ты Comfortable AI — дружелюбный русскоязычный помощник. Отвечай кратко, естественно и по теме. Не выдумывай факты о пользователе."},
+    {role:"system",content:"Ты Comfortable AI — дружелюбный русскоязычный помощник. Отвечай естественно, кратко и строго по теме. Не выдумывай личные данные пользователя. Не используй emoji."},
     {role:"user",content:cleanText(userText)}
   ];
+
   try{
-    const result=await generator(prompt,{max_new_tokens:180,do_sample:true,temperature:.7,top_p:.9,return_full_text:false});
-    const text=Array.isArray(result)?(result[0]?.generated_text||result[0]?.text||""):(result?.generated_text||result?.text||"");
-    return cleanText(String(text));
+    const result=await generator(prompt,{
+      max_new_tokens:180,
+      do_sample:true,
+      temperature:.7,
+      top_p:.9,
+      return_full_text:false
+    });
+    const answer=extractGeneratedText(result);
+    if(!answer||answer==="[object Object]")throw new Error("AI вернул пустой или некорректный ответ");
+    return answer;
   }catch(error){
-    console.warn("Ошибка ответа основной AI-модели:",error);
-    if(aiModelIndex<AI_MODELS.length-1){
-      aiGenerator=null;
-      aiLoading=false;
-      aiFailed=false;
-      const next=await loadAIModel();
-      if(next)return generateWithAI(userText);
+    console.warn("Ошибка ответа AI-модели:",error);
+    const nextIndex=aiModelIndex>=0?aiModelIndex+1:0;
+    aiGenerator=null;
+    aiReady=false;
+    const next=await loadAIModel(nextIndex);
+    if(next){
+      try{
+        const result=await next(prompt,{
+          max_new_tokens:180,
+          do_sample:true,
+          temperature:.7,
+          top_p:.9,
+          return_full_text:false
+        });
+        const answer=extractGeneratedText(result);
+        if(answer&&answer!=="[object Object]")return answer;
+      }catch(secondError){
+        console.warn("Резервная AI-модель тоже не ответила:",secondError);
+        const afterFailure=aiModelIndex>=0?aiModelIndex+1:AI_MODELS.length;
+        aiGenerator=null;
+        if(afterFailure<AI_MODELS.length){
+          const lastChance=await loadAIModel(afterFailure);
+          if(lastChance){
+            try{
+              const result=await lastChance(prompt,{max_new_tokens:180,do_sample:true,temperature:.7,top_p:.9,return_full_text:false});
+              const answer=extractGeneratedText(result);
+              if(answer)return answer;
+            }catch(lastError){console.warn("Последняя резервная модель не ответила:",lastError)}
+          }
+        }
+      }
     }
-    aiFailed=true;
-    setAIStatus("ошибка — переключение на встроенные ответы");
+    setAIStatus("AI не ответила — используются встроенные ответы");
     return null;
   }
 }
-window.addEventListener("comfortable-ai-transformers-ready",()=>{loadAIModel()});
-if(window.ComfortableAITransformers)loadAIModel();
 
+window.addEventListener("comfortable-ai-transformers-ready",()=>setAIStatus("готова к загрузке при необходимости"));
+if(window.ComfortableAITransformers)setAIStatus("готова к загрузке при необходимости");
 chatSearchInput.oninput=()=>render();
 loadSharedKnowledge();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
@@ -365,8 +421,7 @@ function save(){
       c.messages=(Array.isArray(c.messages)?c.messages:[])
         .map(([role,text])=>[role==="user"?"user":"assistant",repairSavedMessageText(text)])
         .filter(([,text])=>text&&text!=="undefined")
-        .filter(([,text])=>text!=="Вот это интересно! А как у тебя учёба в школе?" && text!=="Интересно. Рассказывай дальше, мне правда интересно, что у тебя происходит.")
-        .filter((item,index,arr)=>!(item[0]==="assistant"&&arr[index-1]?.[0]==="assistant"&&arr[index-1]?.[1]?.startsWith("Ох, как жаль. Да исцелит тебя Аллах.")));
+        .filter(([,text])=>text&&text!=="undefined");
     });
     state.assistantName=cleanText(state.assistantName||defaultState.assistantName);
     localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
@@ -910,21 +965,44 @@ function conversationReply(text){
 
   const answer=localAnswer(text);
   if(answer)return addMessage("assistant",answer);
+  const chatId=chat.id;
   addMessage("assistant","Секунду, думаю…",false);
   generateWithAI(text).then(aiAnswer=>{
-    const chat=activeChat();
-    const last=chat.messages[chat.messages.length-1];
+    const target=state.chats.find(c=>c.id===chatId);
+    if(!target)return;
+    const last=target.messages[target.messages.length-1];
     if(last&&last[0]==="assistant"&&last[1]==="Секунду, думаю…"){
-      chat.messages.pop(); save(); render();
+      target.messages.pop();
+      save();
+      if(state.activeChatId===chatId)render();
     }
-    if(aiAnswer)return addMessage("assistant",aiAnswer);
-    return requestLearning(text);
+    if(aiAnswer){
+      if(state.activeChatId===chatId)addMessage("assistant",aiAnswer);
+      else{
+        target.messages.push(["assistant",aiAnswer]);
+        save();
+      }
+      return;
+    }
+    if(state.activeChatId===chatId)requestLearning(text);
+    else{
+      target.learningQuestion=cleanText(text);
+      save();
+    }
   }).catch(error=>{
-    console.error(error);
-    const chat=activeChat();
-    const last=chat.messages[chat.messages.length-1];
-    if(last&&last[0]==="assistant"&&last[1]==="Секунду, думаю…"){chat.messages.pop();save();render();}
-    requestLearning(text);
+    console.error("Ошибка обработки AI:",error);
+    const target=state.chats.find(c=>c.id===chatId);
+    if(!target)return;
+    const last=target.messages[target.messages.length-1];
+    if(last&&last[0]==="assistant"&&last[1]==="Секунду, думаю…")target.messages.pop();
+    if(state.activeChatId===chatId){
+      save();
+      render();
+      requestLearning(text);
+    }else{
+      target.learningQuestion=cleanText(text);
+      save();
+    }
   });
 }
 
@@ -963,7 +1041,35 @@ composer.onsubmit=e=>{e.preventDefault();submitMessage(input.value)};$("newChatB
 $("renameChatButton").onclick=()=>{const name=prompt("Название чата:",activeChat().name);if(name&&name.trim()){activeChat().name=name.trim();save();render()}};
 $("nameButton").onclick=()=>{const name=prompt("Как назвать помощника?",state.assistantName);if(name&&name.trim()){state.assistantName=name.trim();save();render();addMessage("assistant","Теперь я буду называться "+state.assistantName+" ")}};
 $("backgroundButton").onclick=()=>openModal("backgroundPanel");$("closeBackground").onclick=()=>closeModal("backgroundPanel");$("uploadBackground").onclick=()=>backgroundInput.click();$("resetBackground").onclick=()=>{state.backgroundType="preset";state.backgroundValue=DEFAULT_BG;save();render()};
-backgroundInput.onchange=()=>{const file=backgroundInput.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const max=1500,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,canvas.width,canvas.height);state.backgroundType="image";state.backgroundValue=canvas.toDataURL("image/jpeg",.78);save();render();closeModal("backgroundPanel")};img.src=reader.result};reader.readAsDataURL(file)};
+backgroundInput.onchange=()=>{
+  const file=backgroundInput.files?.[0];
+  backgroundInput.value="";
+  if(!file)return;
+  if(!file.type.startsWith("image/"))return addMessage("assistant","Выбери изображение.");
+  if(file.size>12*1024*1024)return addMessage("assistant","Это изображение слишком большое. Выбери файл до 12 МБ.");
+  const reader=new FileReader();
+  reader.onerror=()=>addMessage("assistant","Не удалось прочитать изображение. Попробуй другой файл.");
+  reader.onload=()=>{
+    const img=new Image();
+    img.onerror=()=>addMessage("assistant","Не удалось открыть изображение. Попробуй другой файл.");
+    img.onload=()=>{
+      const max=1500,scale=Math.min(1,max/Math.max(img.width,img.height));
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(img.width*scale));
+      canvas.height=Math.max(1,Math.round(img.height*scale));
+      const ctx=canvas.getContext("2d");
+      if(!ctx)return addMessage("assistant","Не удалось обработать изображение.");
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      state.backgroundType="image";
+      state.backgroundValue=canvas.toDataURL("image/jpeg",.78);
+      save();
+      render();
+      closeModal("backgroundPanel");
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+};
 document.querySelectorAll("[data-bg]").forEach(b=>b.onclick=()=>{state.backgroundType="preset";state.backgroundValue=b.dataset.bg;save();render()});
 $("capabilitiesButton").onclick=()=>openModal("capabilitiesPanel");$("closeCapabilities").onclick=()=>closeModal("capabilitiesPanel");
 $("settingsButton").onclick=openSettings;
@@ -1008,4 +1114,15 @@ function speakText(text){if(!state.voiceEnabled||!("speechSynthesis"in window))r
 document.querySelectorAll(".quick-actions button").forEach(b=>{b.type="button";b.onclick=()=>submitMessage(b.dataset.text)});
 document.querySelectorAll(".help-card").forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==="talk"){activeChat().talkMode=true;activeChat().talkQuestionHistory=[];save();return addMessage("assistant","О чём расскажешь?");}if(a==="riddle")return setRiddle();if(a==="story")return story();if(a==="help")return giveHint()});
 if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape")return;
+  document.querySelectorAll(".modal:not(.hidden)").forEach(modal=>closeModal(modal.id));
+});
+window.addEventListener("error",event=>{
+  console.error("Comfortable AI runtime error:",event.error||event.message);
+  setAIStatus("готова; если ответ не появился, повтори сообщение");
+});
+window.addEventListener("unhandledrejection",event=>{
+  console.error("Comfortable AI promise error:",event.reason);
+});
 render();
