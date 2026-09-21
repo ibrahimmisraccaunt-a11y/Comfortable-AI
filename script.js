@@ -34,7 +34,7 @@ try{
 let state=migrateState(parsedState)||defaultState;
 if(!state.chats.length)state.chats=[...defaultState.chats];
 if(!state.activeChatId||!state.chats.some(c=>c.id===state.activeChatId))state.activeChatId=state.chats[0].id;
-state.learnedAnswers=Array.isArray(state.learnedAnswers)?state.learnedAnswers.filter(item=>item&&typeof item.question==="string"&&typeof item.answer==="string"):[];
+state.learnedAnswers=Array.isArray(state.learnedAnswers)?state.learnedAnswers.filter(item=>item&&typeof item.question==="string"&&typeof item.answer==="string"&&normalizeLearnedQuestion(item.question)!==normalizeLearnedQuestion(item.answer)):[];
 state.chats.forEach(c=>{
   c.pinned=!!c.pinned;
   c.learningQuestion=typeof c.learningQuestion==="string"?c.learningQuestion:null;
@@ -236,7 +236,7 @@ function findLearnedAnswer(text){
   if(!target)return null;
 
   const pool=[...sharedKnowledge,...(Array.isArray(state.learnedAnswers)?state.learnedAnswers:[])];
-  const exact=pool.find(item=>normalizeLearnedQuestion(item.question)===target);
+  const exact=pool.find(item=>normalizeLearnedQuestion(item.question)===target&&normalizeLearnedQuestion(item.answer)!==target);
   if(exact)return exact.answer;
 
   const chat=activeChat();
@@ -272,6 +272,7 @@ function rememberLearnedAnswer(question,answer){
   const a=cleanText(answer);
   if(!q||!a)return false;
   const normalizedQuestion=normalizeLearnedQuestion(q);
+  if(normalizedQuestion===normalizeLearnedQuestion(a))return false;
   state.learnedAnswers=Array.isArray(state.learnedAnswers)?state.learnedAnswers:[];
   const existing=state.learnedAnswers.find(item=>normalizeLearnedQuestion(item.question)===normalizedQuestion);
   const item={question:q,answer:a,learnedAt:new Date().toISOString()};
@@ -308,6 +309,9 @@ function handleLearningAnswer(text){
   if(!question)return false;
   const x=normalize(text);
   if(x==="отмена"||x==="не хочу"||x==="не знаю")return cancelLearning();
+  if(normalizeLearnedQuestion(text)===normalizeLearnedQuestion(question)){
+    return addMessage("assistant","Ты снова отправила сам вопрос. Напиши, пожалуйста, что он означает, и я это запомню.");
+  }
   if(text.trim().length<2)return addMessage("assistant","Напиши ответ чуть подробнее, чтобы я смогла его запомнить.");
   if(question==="(вопрос из предыдущего сообщения)"){
     const messages=Array.isArray(chat.messages)?chat.messages:[];
