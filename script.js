@@ -309,15 +309,15 @@ function handleLearningAnswer(text){
   if(!question)return false;
   const x=normalize(text);
   if(x==="отмена"||x==="не хочу"||x==="не знаю")return cancelLearning();
-  if(normalizeLearnedQuestion(text)===normalizeLearnedQuestion(question)){
-    return addMessage("assistant","Ты снова отправила сам вопрос. Напиши, пожалуйста, что он означает, и я это запомню.");
-  }
-  if(text.trim().length<2)return addMessage("assistant","Напиши ответ чуть подробнее, чтобы я смогла его запомнить.");
   if(question==="(вопрос из предыдущего сообщения)"){
     const messages=Array.isArray(chat.messages)?chat.messages:[];
     const previousUser=[...messages].reverse().find(item=>Array.isArray(item)&&item[0]==="user");
     question=previousUser?String(previousUser[1]):question;
   }
+  if(normalizeLearnedQuestion(text)===normalizeLearnedQuestion(question)){
+    return addMessage("assistant","Ты снова отправила сам вопрос. Напиши, пожалуйста, что он означает, и я это запомню.");
+  }
+  if(text.trim().length<2)return addMessage("assistant","Напиши ответ чуть подробнее, чтобы я смогла его запомнить.");
   chat.learningQuestion=null;
   rememberLearnedAnswer(question,text);
   addMessage("assistant","Спасибо! Я запомнила этот ответ и буду использовать его в следующий раз.");
