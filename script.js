@@ -57,215 +57,6 @@ const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
-const AI_MODEL_STORAGE_KEY="comfortable-ai-model";
-const AI_MODELS={
-  smart:{id:"onnx-community/Qwen3-1.7B-ONNX",label:"Qwen3-1.7B-ONNX",size:"≈1,43 ГБ",dtype:"q4f16",device:"webgpu",thinking:true},
-  small:{id:"onnx-community/Qwen2.5-0.5B-Instruct",label:"Qwen2.5-0.5B-Instruct",size:"≈512 МБ",dtype:"q8",device:"wasm",thinking:false},
-  large:{id:"onnx-community/Qwen2.5-1.5B-Instruct",label:"Qwen2.5-1.5B-Instruct",size:"≈1,22 ГБ",dtype:"q4f16",device:"webgpu",thinking:false}
-};
-const DEFAULT_AI_MODEL_KEY="smart";
-const AI_MODEL_PREF_VERSION="5";
-let selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
-try{
-  const storedAIModel=localStorage.getItem(AI_MODEL_STORAGE_KEY);
-  const storedModelVersion=localStorage.getItem(AI_MODEL_STORAGE_KEY+"-version");
-  if(storedModelVersion===AI_MODEL_PREF_VERSION&&storedAIModel&&AI_MODELS[storedAIModel]){
-    selectedAIModelKey=storedAIModel;
-  }else{
-    localStorage.setItem(AI_MODEL_STORAGE_KEY,DEFAULT_AI_MODEL_KEY);
-    localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
-  }
-}catch(error){
-  console.warn("Не удалось прочитать выбор AI-модели:",error);
-}
-const REAL_AI_MODEL=AI_MODELS[selectedAIModelKey].id;
-let realAIPipelinePromise=null;
-let realAIReady=false;
-let aiLoadProgress=0;
-
-function normalizeAIProgress(value){
-  const n=Number(value);
-  if(!Number.isFinite(n))return null;
-  if(n>=0&&n<=1)return n*100;
-  return Math.max(0,Math.min(100,n));
-}
-function setAILoadProgress(percent,text){
-  const normalized=normalizeAIProgress(percent);
-  if(normalized!==null)aiLoadProgress=Math.max(0,Math.min(100,normalized));
-  const bar=$("aiLoadBar"), label=$("aiLoadLabel"), value=$("aiLoadPercent"), remaining=$("aiLoadRemaining");
-  if(bar)bar.style.width=aiLoadProgress+"%";
-  if(value)value.textContent=Math.round(aiLoadProgress)+"%";
-  if(remaining)remaining.textContent="Осталось: "+Math.max(0,100-Math.round(aiLoadProgress))+"%";
-  if(label&&text)label.textContent=text;
-}
-function handleAIProgress(info){
-  if(!info)return;
-  let progress=normalizeAIProgress(info.progress);
-  if(progress===null && Number.isFinite(Number(info.loaded)) && Number.isFinite(Number(info.total)) && Number(info.total)>0){
-    progress=Number(info.loaded)/Number(info.total)*100;
-  }
-  if(progress!==null){
-    if(info.status==="progress")setAILoadProgress(Math.max(aiLoadProgress,progress),info.file?("Загрузка: "+String(info.file).split("/").pop()):"Загрузка модели...");
-    else if(info.status==="initiate")setAILoadProgress(Math.max(aiLoadProgress,1),info.file?("Подготовка: "+String(info.file).split("/").pop()):"Подготовка модели...");
-  }
-}
-
-function setChatLocked(locked){
-  if(input)input.disabled=locked;
-  const send=$("composer")?.querySelector('button[type="submit"]');
-  if(send)send.disabled=locked;
-  document.querySelectorAll(".quick-actions button,.help-card").forEach(button=>button.disabled=locked);
-  $("composer")?.classList.toggle("locked",locked);
-  $("aiLoadingPanel")?.classList.toggle("hidden",!locked);
-  $("aiLoadingPanel")?.setAttribute("aria-hidden",locked?"false":"true");
-}
-
-function aiLog(...args){
-  console.log("[Comfortable AI]",...args);
-}
-function aiError(...args){
-  console.error("[Comfortable AI]",...args);
-}
-function setAIStatus(text){
-  const status=document.querySelector(".online");
-  if(status)status.textContent=text;
-  aiLog("STATUS:",text);
-}
-
-async function getRealAIPipeline(){
-  if(realAIPipelinePromise)return realAIPipelinePromise;
-  realAIPipelinePromise=(async()=>{
-    const model=AI_MODELS[selectedAIModelKey];
-    setAIStatus("Загрузка "+model.label+"...");
-    setChatLocked(true);
-    setAILoadProgress(0,"Подготовка "+model.label+" ("+model.size+")...");
-    aiLog("Запускаю модель:",model.id);
-    const {pipeline}=await import(REAL_AI_IMPORT);
-    let generator=null;
-    let lastError=null;
-    const progressOptions={progress_callback:handleAIProgress};
-
-    const attempts=[];
-    if(model.device==="webgpu"&&navigator.gpu){
-      attempts.push({dtype:model.dtype,device:"webgpu",label:"Запускаю WebGPU..."});
-    }
-    attempts.push({dtype:model.dtype,device:"wasm",label:"Запускаю совместимый режим..."});
-    if(model.device==="webgpu"&&model.dtype!=="q8"){
-      attempts.push({dtype:"q8",device:"wasm",label:"Пробую резервный q8-режим..."});
-    }
-
-    for(const attempt of attempts){
-      try{
-        setAIStatus(attempt.label);
-        setAILoadProgress(Math.max(aiLoadProgress,1),attempt.label);
-        const options={...attempt,...progressOptions};
-        delete options.label;
-        aiLog("Попытка запуска:",options);
-        generator=await Promise.race([
-          pipeline("text-generation",model.id,options),
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error("MODEL_INIT_TIMEOUT")),120000))
-        ]);
-        break;
-      }catch(error){
-        lastError=error;
-        aiError("Попытка запуска не удалась:",error);
-      }
-    }
-
-    if(!generator)throw lastError||new Error("MODEL_INIT_FAILED");
-    realAIReady=true;
-    setAILoadProgress(100,"Модель готова");
-    setAIStatus("AI-модель готова");
-    setChatLocked(false);
-    aiLog("Модель полностью готова:",model.id);
-    return generator;
-  })().catch(error=>{
-    realAIPipelinePromise=null;
-    realAIReady=false;
-    setAIStatus("Ошибка загрузки AI");
-    aiLoadProgress=0;
-    setAILoadProgress(0,"Не удалось загрузить модель");
-    setChatLocked(false);
-    aiError("ОШИБКА ЗАГРУЗКИ МОДЕЛИ:",error);
-    throw error;
-  });
-  return realAIPipelinePromise;
-}
-
-function buildAIConversation(userText,knowledge=null){
-  const chat=activeChat();
-  const history=(Array.isArray(chat.messages)?chat.messages:[])
-    .slice(-14)
-    .map(([role,text])=>({role:role==="user"?"user":"assistant",content:repairSavedMessageText(text)}))
-    .filter(item=>item.content);
-  const complexQuestion=/\b(реши|докажи|доказательство|вычисли|посчитай|математ|логичес|алгоритм|код|программ|почему|объясни подробно|сравни|проанализируй|разбери|задач[аиуы]|proof|solve|calculate|code|programming)\b/i.test(userText);
-  const model=AI_MODELS[selectedAIModelKey]||AI_MODELS[DEFAULT_AI_MODEL_KEY];
-  const userContent=model.thinking ? ((complexQuestion?"/think\n":"/no_think\n")+userText) : userText;
-  if(!history.length||history[history.length-1].role!=="user")history.push({role:"user",content:userContent});
-  const systemMessages=[{
-    role:"system",
-    content:"Ты Comfortable AI — универсальный дружелюбный помощник. Отвечай по-русски, если пользователь не попросил другой язык. Умей отвечать на широкий круг вопросов: знания, наука, история, математика, логика, программирование, объяснения, обучение, переводы, тексты, идеи и обычный разговор. Всегда отвечай именно на вопрос пользователя. Для простого вопроса отвечай кратко и понятно; для сложного — по шагам. Не уходи от темы. Не выдумывай факты, источники или действия, которых не выполнял. Если точного ответа не знаешь, честно скажи об этом. Если дана справочная информация, используй её как источник и не противоречь ей. Не повторяй вопрос, не пиши служебные сообщения и не используй emoji."
-  }];
-  if(knowledge?.extract){
-    systemMessages.push({
-      role:"system",
-      content:"Справочная информация из Wikipedia:\n"+knowledge.extract.slice(0,6000)+"\nЗаголовок: "+knowledge.title
-    });
-  }
-  return [...systemMessages,...history];
-}
-function shouldUseWikipedia(text){
-  const x=normalize(text);
-  if(!x||x.length<6)return false;
-  if(x==="как дела"||x==="привет"||x==="пока"||x.includes("джазакилляху")||x.includes("спасибо"))return false;
-  const patterns=[
-    "что такое","кто такой","кто такая","кто это","где находится","где расположен","где расположена",
-    "когда родился","когда родилась","когда умер","когда основан","когда основана","почему",
-    "как работает","как устроен","что означает","что значит","какой","какая","какое","какие",
-    "сколько лет","сколько","история","биография"
-  ];
-  return text.includes("?")||patterns.some(p=>x.includes(p));
-}
-function getWikiQuery(text){
-  return cleanText(String(text||""))
-    .replace(/\b(пожалуйста|можешь|можно|расскажи|объясни|скажи)\b/gi," ")
-    .replace(/[?!.]+$/g,"")
-    .trim()
-    .slice(0,180);
-}
-async function fetchWikipediaContext(userText){
-  if(!shouldUseWikipedia(userText))return null;
-  const query=getWikiQuery(userText);
-  if(!query)return null;
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),5000);
-  const languages=/[A-Za-z]/.test(query)&&!/[А-Яа-яЁё]/.test(query) ? ["en","ru"] : ["ru","en"];
-  try{
-    for(const lang of languages){
-      try{
-        const searchUrl="https://"+lang+".wikipedia.org/w/api.php?action=query&list=search&srsearch="+encodeURIComponent(query)+"&utf8=1&format=json&origin=*&srlimit=1";
-        const searchResponse=await fetch(searchUrl,{signal:controller.signal});
-        if(!searchResponse.ok)continue;
-        const searchData=await searchResponse.json();
-        const title=searchData?.query?.search?.[0]?.title;
-        if(!title)continue;
-        const pageUrl="https://"+lang+".wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles="+encodeURIComponent(title)+"&format=json&origin=*";
-        const pageResponse=await fetch(pageUrl,{signal:controller.signal});
-        if(!pageResponse.ok)continue;
-        const pageData=await pageResponse.json();
-        const pages=pageData?.query?.pages||{};
-        const page=Object.values(pages)[0];
-        const extract=cleanText(page?.extract||"");
-        if(extract)return {title:String(title),extract,lang};
-      }catch(error){
-        if(error?.name==="AbortError")break;
-      }
-    }
-  }finally{
-    clearTimeout(timer);
-  }
-  return null;
-}
 function calculateSimpleExpression(text){
   const raw=cleanText(text).replace(/^(сколько будет|посчитай|вычисли|реши)\s*/i,"").trim();
   if(!raw||raw.length>90)return null;
@@ -278,107 +69,64 @@ function calculateSimpleExpression(text){
     return Number.isInteger(result)?String(result):String(Number(result.toFixed(10)));
   }catch(error){return null;}
 }
-function isSaneAIText(text){
-  const value=cleanText(text);
-  if(!value)return false;
-  const letters=(value.match(/[A-Za-zА-Яа-яЁё]/g)||[]).length;
-  const words=value.split(/\s+/).filter(Boolean);
-  if(letters<3||words.length<2)return false;
-  const weird=(value.match(/[^\p{L}\p{N}\s.,!?;:"«»()\-—'’%+=*/_]/gu)||[]).length;
-  if(weird>Math.max(8,Math.floor(value.length*.18)))return false;
-  const normalizedWords=words.map(w=>w.toLowerCase().replace(/[^a-zа-яё0-9]/gi,"")).filter(Boolean);
-  const counts=new Map();
-  for(const word of normalizedWords)counts.set(word,(counts.get(word)||0)+1);
-  if(words.length<40&&[...counts.values()].some(n=>n>=5))return false;
-  return true;
-}
-function extractAIText(output){
-  const generated=output?.[0]?.generated_text;
-  if(Array.isArray(generated)){
-    const last=generated[generated.length-1];
-    if(last&&typeof last.content==="string")return repairSavedMessageText(last.content.replace(/<think>[\s\S]*?<\/think>/gi,"").trim());
+
+function localAnswer(text){
+  const x=normalize(text);
+  const calc=calculateSimpleExpression(text);
+  if(calc!==null)return "Ответ: "+calc;
+  if(x.includes("какая сегодня дата")||x.includes("какое сегодня число")||x.includes("какой сегодня день")){
+    return "Сегодня "+new Intl.DateTimeFormat("ru-RU",{day:"numeric",month:"long",year:"numeric"}).format(new Date())+".";
   }
-  if(typeof generated==="string"){
-    let text=repairSavedMessageText(generated.replace(/<think>[\s\S]*?<\/think>/gi,"").trim());
-    const marker=text.lastIndexOf("Comfortable AI:");
-    if(marker>=0)text=text.slice(marker+"Comfortable AI:".length);
-    return repairSavedMessageText(text);
+  if(x.includes("сколько времени")||x.includes("который час")){
+    return "Сейчас "+new Intl.DateTimeFormat("ru-RU",{hour:"2-digit",minute:"2-digit"}).format(new Date())+".";
   }
-  return "";
-}
 
-
-let realAILoadFailed=false;
-function startRealAILoad(){
-  if(realAIReady||realAIPipelinePromise||realAILoadFailed)return;
-  getRealAIPipeline().catch(()=>{realAILoadFailed=true;});
-}
-
-async function realAIReply(userText){
-  aiLog("Запрос пользователя:",userText);
-  aiLog("Состояние модели перед ответом:",{realAIReady,loading:!!realAIPipelinePromise,loadFailed:realAILoadFailed,model:selectedAIModelKey});
-  if(!realAIReady){
-    startRealAILoad();
-    return addMessage("assistant","AI-модель ещё загружается. Подожди немного и отправь сообщение ещё раз.");
-  }
-  const mathAnswer=calculateSimpleExpression(userText);
-  if(mathAnswer!==null)return addMessage("assistant","Ответ: "+mathAnswer);
-
-  let knowledge=null;
-  try{
-    if(shouldUseWikipedia(userText)){
-      setAIStatus("Ищу справочную информацию...");
-      knowledge=await fetchWikipediaContext(userText);
-      if(knowledge)aiLog("Найдена справка Wikipedia:",knowledge.title);
+  const rules=[
+    [["что такое биология"],"Биология — это наука о живых организмах. Она изучает их строение, работу, развитие, происхождение и взаимодействие с окружающей средой."],
+    [["что такое физика"],"Физика — наука о природе, материи, движении, энергии, силах и законах, по которым работает окружающий мир."],
+    [["что такое химия"],"Химия — наука о веществах: из чего они состоят, какими свойствами обладают и как превращаются друг в друга."],
+    [["что такое география"],"География изучает Землю, её природу, страны, население и связи между людьми и окружающей средой."],
+    [["что такое математика"],"Математика изучает числа, величины, формы, закономерности и точные способы рассуждения."],
+    [["что такое история"],"История изучает события и процессы прошлого людей и обществ, опираясь на сохранившиеся источники."],
+    [["что такое программирование"],"Программирование — это создание инструкций для компьютера с помощью языков программирования."],
+    [["что такое интернет"],"Интернет — глобальная сеть, соединяющая устройства и позволяющая им обмениваться данными."],
+    [["что такое искусственный интеллект","что такое ии"],"Искусственный интеллект — это программы и системы, которые выполняют задачи, связанные с анализом информации, поиском закономерностей и созданием результатов."],
+    [["что такое солнце"],"Солнце — звезда в центре Солнечной системы. Земля и другие планеты обращаются вокруг него."],
+    [["что такое луна"],"Луна — естественный спутник Земли. Она обращается вокруг нашей планеты и отражает свет Солнца."],
+    [["почему небо голубое"],"Небо кажется голубым из-за рассеяния солнечного света в атмосфере. Синие составляющие света рассеиваются сильнее красных."],
+    [["почему идет дождь","почему идёт дождь"],"Вода испаряется, поднимается в атмосферу, охлаждается и образует капли в облаках. Когда капли становятся достаточно тяжёлыми, выпадает дождь."],
+    [["что такое гравитация"],"Гравитация — это взаимодействие, из-за которого тела притягиваются друг к другу. Притяжение Земли удерживает нас на её поверхности."],
+    [["что такое атом"],"Атом — очень маленькая частица вещества, состоящая из ядра и электронов."],
+    [["что такое молекула"],"Молекула — частица вещества, состоящая из двух или нескольких связанных атомов."],
+    [["кто такой альберт эйнштейн"],"Альберт Эйнштейн — физик XX века, создатель теории относительности и один из самых известных учёных своего времени."],
+    [["кто такой александр пушкин","кто такой пушкин"],"Александр Пушкин — русский поэт и писатель XIX века, один из основоположников современной русской литературы."],
+    [["что такое javascript"],"JavaScript — язык программирования, который часто используется для создания интерактивных веб-страниц и приложений."],
+    [["что такое html"],"HTML — язык разметки, который описывает структуру веб-страницы."],
+    [["что такое css"],"CSS отвечает за внешний вид веб-страницы: цвета, размеры, расположение элементов, шрифты и многое другое."],
+    [["как тебя зовут"],()=> "Меня зовут "+state.assistantName+"."],
+    [["кто тебя создал","кто тебя сделал"],"Меня создала Деккушева Джамиля."],
+    [["что ты умеешь","что умеешь"],"Я умею отвечать на заранее подготовленные вопросы, поддерживать разговор по темам, загадывать загадки, давать подсказки, придумывать истории и запоминать чаты."],
+    [["помоги с английским","учить английский","изучать английский"],"Конечно. Напиши английскую фразу или слово, и я разберу его по заранее подготовленным правилам."],
+    [["помоги с арабским","учить арабский","изучать арабский"],"Конечно. Напиши арабское слово или предложение, которое хочешь разобрать."],
+    [["как дела"],"Альхамдулиллях, хорошо. А как у тебя дела?"],
+    [["хорошо","отлично","класс"],"Рада это слышать. Рассказывай, что ещё произошло."],
+    [["мне грустно","грустно"],"Мне жаль, что тебе грустно. Расскажи, что случилось, и я постараюсь поддержать тебя."],
+    [["мне скучно","скучно"],"Давай придумаем что-нибудь интересное: загадку, историю или тему для разговора."],
+    [["что такое комфортный ии","что такое comfortable ai"],"Comfortable AI — это уютный помощник, который работает прямо в браузере и использует заранее подготовленные правила ответов."]
+  ];
+  for(const [patterns,response] of rules){
+    if(patterns.some(p=>x===p||x.includes(p))){
+      return typeof response==="function"?response():response;
     }
-  }catch(error){
-    aiError("Ошибка поиска справочной информации:",error);
   }
-
-  const model=AI_MODELS[selectedAIModelKey]||AI_MODELS[DEFAULT_AI_MODEL_KEY];
-  const complexQuestion=/\b(реши|докажи|доказательство|вычисли|посчитай|математ|логичес|алгоритм|код|программ|почему|объясни подробно|сравни|проанализируй|разбери|задач[аиуы]|proof|solve|calculate|code|programming)\b/i.test(userText);
-  try{
-    const generator=await getRealAIPipeline();
-    setAIStatus(knowledge?"Готовлю ответ по найденной информации...":"AI думает...");
-    const generationOptions={
-      max_new_tokens:complexQuestion?280:180,
-      do_sample:true,
-      temperature:complexQuestion&&model.thinking?.6:.7,
-      top_p:complexQuestion&&model.thinking?.95:.85,
-      top_k:20,
-      repetition_penalty:1.05,
-      no_repeat_ngram_size:3
-    };
-    let output=await Promise.race([
-      generator(buildAIConversation(userText,knowledge),generationOptions),
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),120000))
-    ]);
-    let answer=extractAIText(output);
-    aiLog("Извлечённый ответ:",answer);
-    if(!answer||!isSaneAIText(answer)){
-      aiLog("Первый ответ не прошёл проверку, повторяю запрос");
-      output=await Promise.race([
-        generator(buildAIConversation(userText,knowledge),{...generationOptions,temperature:.55,top_p:.8,max_new_tokens:180}),
-        new Promise((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),120000))
-      ]);
-      answer=extractAIText(output);
-    }
-    setAIStatus("AI-модель готова");
-    if(answer&&isSaneAIText(answer))return addMessage("assistant",answer);
-    if(knowledge?.extract){
-      const fallback=knowledge.extract.slice(0,900);
-      return addMessage("assistant",knowledge.title+": "+fallback+(knowledge.extract.length>900?"...":""));
-    }
-    return addMessage("assistant","Не получилось уверенно сформировать ответ. Переформулируй вопрос немного по-другому.");
-  }catch(error){
-    aiError("ОШИБКА ОТВЕТА МОДЕЛИ:",error);
-    setAIStatus(realAIReady?"AI-модель готова":"Ошибка AI");
-    if(knowledge?.extract){
-      const fallback=knowledge.extract.slice(0,900);
-      return addMessage("assistant",knowledge.title+": "+fallback+(knowledge.extract.length>900?"...":""));
-    }
-    return addMessage("assistant",error?.message==="AI_TIMEOUT"?"Ответ занимает слишком долго. Попробуй ещё раз через несколько секунд.":"AI-модель не смогла ответить.");
+  if(x.includes("переведи ")||x.startsWith("перевод ")){
+    return "Я могу отвечать на заранее подготовленные переводы. Напиши короткую фразу и укажи направление перевода.";
   }
+  if(x.includes("реши задачу")||x.includes("помоги решить")||x.includes("задача")){
+    return "Напиши условие задачи полностью. Простые вычисления я умею решать сразу.";
+  }
+  if(x.endsWith("?"))return "Я пока не знаю готового ответа на этот вопрос. Попробуй сформулировать его немного иначе или спроси о знакомой мне теме.";
+  return "Я пока умею отвечать на заранее подготовленные вопросы и по заданным правилам. Попробуй спросить меня о науке, учёбе, животных, английском, арабском, загадках или историях.";
 }
 
 let lastSubmittedText="";
@@ -988,13 +736,12 @@ function conversationReply(text){
     ]));
   }
 
-  return realAIReply(text);
+  return localAnswer(text);
 }
 
-function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях я также могу использовать встроенную AI-модель прямо в браузере."); if(activeChat().talkMode){conversationReply(text);return;} return realAIReply(text);
+function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях использует собственную систему заранее подготовленных ответов и правил."); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant",localAnswer(text));
 }
 function submitMessage(rawText){
-  if(!realAIReady)return;
   const text=cleanText(rawText);
   if(!text)return;
   const now=Date.now();
@@ -1036,40 +783,10 @@ $("resetSettings").onclick=()=>{
   state.backgroundValue=DEFAULT_BG;
   state.voiceEnabled=false;
   state.voiceType="female";
-  selectedAIModelKey=DEFAULT_AI_MODEL_KEY;
-  try{
-    localStorage.setItem(AI_MODEL_STORAGE_KEY,selectedAIModelKey);
-    localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
-  }catch(error){console.warn("Не удалось сохранить сброс модели:",error)}
   save();
   render();
   updateSettingsSummary();
 };
-function settingsModelLabel(){
-  const info=AI_MODELS[selectedAIModelKey]||AI_MODELS[DEFAULT_AI_MODEL_KEY];
-  return info.label+" · "+info.size;
-}
-function syncModelPanel(){
-  document.querySelectorAll("[data-model-choice]").forEach(button=>{
-    const active=button.dataset.modelChoice===selectedAIModelKey;
-    button.style.fontWeight=active?"800":"inherit";
-    button.querySelector("span:last-child").textContent=active?"Выбрана":"Выбрать";
-  });
-}
-$("settingsModel").onclick=()=>{syncModelPanel();closeModal("settingsPanel");openModal("modelPanel")};
-$("closeModel").onclick=()=>closeModal("modelPanel");
-document.querySelectorAll("[data-model-choice]").forEach(button=>button.onclick=()=>{
-  const key=button.dataset.modelChoice;
-  if(!AI_MODELS[key])return;
-  if(key===selectedAIModelKey){closeModal("modelPanel");return;}
-  selectedAIModelKey=key;
-  try{
-    localStorage.setItem(AI_MODEL_STORAGE_KEY,key);
-    localStorage.setItem(AI_MODEL_STORAGE_KEY+"-version",AI_MODEL_PREF_VERSION);
-  }catch(error){console.warn("Не удалось сохранить выбор модели:",error)}
-  closeModal("modelPanel");
-  location.reload();
-});
 $("voiceButton").onclick=()=>openModal("voicePanel");$("closeVoice").onclick=()=>closeModal("voicePanel");$("voiceEnabled").onchange=e=>{state.voiceEnabled=e.target.checked;save()};document.querySelectorAll("[data-voice]").forEach(b=>b.onclick=()=>{state.voiceType=b.dataset.voice;save()});$("testVoice").onclick=()=>speakText("Ассаляму алейкум! Я проверяю выбранный голос.");
 function settingsBackgroundLabel(){
   if(state.backgroundType==="image")return "Своя картинка";
@@ -1082,11 +799,10 @@ function settingsVoiceLabel(){
   return "Включена, "+(names[state.voiceType]||"Женский").toLowerCase();
 }
 function updateSettingsSummary(){
-  const nameValue=$("settingsNameValue"), backgroundValue=$("settingsBackgroundValue"), voiceValue=$("settingsVoiceValue"), modelValue=$("settingsModelValue");
+  const nameValue=$("settingsNameValue"), backgroundValue=$("settingsBackgroundValue"), voiceValue=$("settingsVoiceValue");
   if(nameValue)nameValue.textContent=state.assistantName||"Comfortable AI";
   if(backgroundValue)backgroundValue.textContent=settingsBackgroundLabel();
   if(voiceValue)voiceValue.textContent=settingsVoiceLabel();
-  if(modelValue)modelValue.textContent=settingsModelLabel();
 }
 function openSettings(){
   updateSettingsSummary();
@@ -1099,5 +815,3 @@ document.querySelectorAll(".quick-actions button").forEach(b=>{b.type="button";b
 document.querySelectorAll(".help-card").forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==="talk"){activeChat().talkMode=true;activeChat().talkQuestionHistory=[];save();return addMessage("assistant","О чём расскажешь?");}if(a==="riddle")return setRiddle();if(a==="story")return story();if(a==="help")return giveHint()});
 if("speechSynthesis"in window)speechSynthesis.onvoiceschanged=()=>{};
 render();
-aiLog("Приложение запущено. Модель:",REAL_AI_MODEL);
-startRealAILoad();
