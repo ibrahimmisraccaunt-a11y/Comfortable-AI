@@ -56,6 +56,86 @@ state.chats.forEach(chat=>{
 save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
 const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
+/* ===== Comfortable AI model fallback ===== */
+const AI_MODELS = [
+  { name:"Qwen2.5 0.5B", id:"onnx-community/Qwen2.5-0.5B-Instruct", dtype:"q4f16" },
+  { name:"Qwen2.5 0.5B (q4 fallback)", id:"onnx-community/Qwen2.5-0.5B-Instruct", dtype:"q4" },
+  { name:"SmolLM2 360M (резерв)", id:"HuggingFaceTB/SmolLM2-360M-Instruct", dtype:"q4" }
+];
+let aiGenerator=null, aiModelIndex=-1, aiLoading=false, aiFailed=false;
+function setAIStatus(text){const el=$("aiStatus");if(el)el.textContent="AI: "+text}
+async function loadAIModel(){
+  if(aiGenerator||aiLoading||aiFailed)return aiGenerator;
+  aiLoading=true;
+  setAIStatus("загрузка модели…");
+  try{
+    const t=window.ComfortableAITransformers;
+    if(!t?.pipeline)throw new Error("Transformers.js ещё не готов");
+    for(let i=0;i<AI_MODELS.length;i++){
+      const m=AI_MODELS[i];
+      try{
+        setAIStatus("загрузка "+m.name+"…");
+        aiGenerator=await t.pipeline("text-generation",m.id,{dtype:m.dtype,device:"webgpu",progress_callback:p=>{
+          if(p?.progress!=null)setAIStatus("загрузка "+m.name+" — "+Math.round(p.progress)+"%");
+        }});
+        aiModelIndex=i;
+        setAIStatus("готова: "+m.name);
+        aiLoading=false;
+        return aiGenerator;
+      }catch(firstError){
+        console.warn("Модель не загрузилась:",m.name,firstError);
+        try{
+          if(m.dtype!=="q4"){
+            setAIStatus("повторная попытка "+m.name+"…");
+            aiGenerator=await t.pipeline("text-generation",m.id,{dtype:"q4",device:"wasm",progress_callback:p=>{
+              if(p?.progress!=null)setAIStatus("загрузка "+m.name+" — "+Math.round(p.progress)+"%");
+            }});
+            aiModelIndex=i;
+            setAIStatus("готова: "+m.name+" (резервный режим)");
+            aiLoading=false;
+            return aiGenerator;
+          }
+        }catch(secondError){console.warn("Резервный режим не загрузился:",secondError)}
+      }
+    }
+    aiFailed=true;
+    setAIStatus("модели недоступны — работают встроенные ответы");
+  }catch(error){
+    console.error("AI loader error:",error);
+    aiFailed=true;
+    setAIStatus("модель недоступна — работают встроенные ответы");
+  }
+  aiLoading=false;
+  return null;
+}
+async function generateWithAI(userText){
+  const generator=aiGenerator||await loadAIModel();
+  if(!generator)return null;
+  const prompt=[
+    {role:"system",content:"Ты Comfortable AI — дружелюбный русскоязычный помощник. Отвечай кратко, естественно и по теме. Не выдумывай факты о пользователе."},
+    {role:"user",content:cleanText(userText)}
+  ];
+  try{
+    const result=await generator(prompt,{max_new_tokens:180,do_sample:true,temperature:.7,top_p:.9,return_full_text:false});
+    const text=Array.isArray(result)?(result[0]?.generated_text||result[0]?.text||""):(result?.generated_text||result?.text||"");
+    return cleanText(String(text));
+  }catch(error){
+    console.warn("Ошибка ответа основной AI-модели:",error);
+    if(aiModelIndex<AI_MODELS.length-1){
+      aiGenerator=null;
+      aiLoading=false;
+      aiFailed=false;
+      const next=await loadAIModel();
+      if(next)return generateWithAI(userText);
+    }
+    aiFailed=true;
+    setAIStatus("ошибка — переключение на встроенные ответы");
+    return null;
+  }
+}
+window.addEventListener("comfortable-ai-transformers-ready",()=>{loadAIModel()});
+if(window.ComfortableAITransformers)loadAIModel();
+
 chatSearchInput.oninput=()=>render();
 loadSharedKnowledge();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
@@ -830,7 +910,22 @@ function conversationReply(text){
 
   const answer=localAnswer(text);
   if(answer)return addMessage("assistant",answer);
-  return requestLearning(text);
+  addMessage("assistant","Секунду, думаю…",false);
+  generateWithAI(text).then(aiAnswer=>{
+    const chat=activeChat();
+    const last=chat.messages[chat.messages.length-1];
+    if(last&&last[0]==="assistant"&&last[1]==="Секунду, думаю…"){
+      chat.messages.pop(); save(); render();
+    }
+    if(aiAnswer)return addMessage("assistant",aiAnswer);
+    return requestLearning(text);
+  }).catch(error=>{
+    console.error(error);
+    const chat=activeChat();
+    const last=chat.messages[chat.messages.length-1];
+    if(last&&last[0]==="assistant"&&last[1]==="Секунду, думаю…"){chat.messages.pop();save();render();}
+    requestLearning(text);
+  });
 }
 
 function ordinaryReply(text){ const x=normalize(text); if(handleLearningAnswer(text))return; if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях использует собственную систему заранее подготовленных ответов и правил."); if(handleLearningAnswer(text))return;
