@@ -112,11 +112,26 @@ function cancelLearning(){
 }
 function handleLearningAnswer(text){
   const chat=activeChat();
-  const question=chat.learningQuestion;
+  let question=chat.learningQuestion;
+  if(!question){
+    const messages=Array.isArray(chat.messages)?chat.messages:[];
+    const lastAssistant=[...messages].reverse().find(item=>Array.isArray(item)&&item[0]==="assistant");
+    const lastUserIndex=[...messages].map((item,index)=>({item,index})).reverse().find(item=>Array.isArray(item.item)&&item.item[0]==="user")?.index;
+    const lastAssistantIndex=[...messages].map((item,index)=>({item,index})).reverse().find(item=>Array.isArray(item.item)&&item.item[0]==="assistant")?.index;
+    if(lastAssistant&&String(lastAssistant[1]).startsWith("Я не знаю ответ на ваш вопрос.")&&
+       (lastAssistantIndex===undefined||lastUserIndex===undefined||lastAssistantIndex>lastUserIndex)){
+      question="(вопрос из предыдущего сообщения)";
+    }
+  }
   if(!question)return false;
   const x=normalize(text);
   if(x==="отмена"||x==="не хочу"||x==="не знаю")return cancelLearning();
   if(text.trim().length<2)return addMessage("assistant","Напиши ответ чуть подробнее, чтобы я смогла его запомнить.");
+  if(question==="(вопрос из предыдущего сообщения)"){
+    const messages=Array.isArray(chat.messages)?chat.messages:[];
+    const previousUser=[...messages].reverse().find(item=>Array.isArray(item)&&item[0]==="user");
+    question=previousUser?String(previousUser[1]):question;
+  }
   chat.learningQuestion=null;
   rememberLearnedAnswer(question,text);
   addMessage("assistant","Спасибо! Я запомнила этот ответ и буду использовать его в следующий раз.");
