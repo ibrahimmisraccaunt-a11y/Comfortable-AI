@@ -18,7 +18,7 @@ mint:"linear-gradient(135deg,#dcffe9 0%,#d3fff6 50%,#e7f4ff 100%)",
 pink:"linear-gradient(135deg,#ffe0f1 0%,#ffd7ff 48%,#e5dcff 100%)",
 sky:"linear-gradient(135deg,#e6f4ff 0%,#dff1ff 48%,#f5efff 100%)"
 };
-const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[]}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female"};
+const defaultState={chats:[{id:String(Date.now()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[],learningQuestion:null}],activeChatId:null,assistantName:"Comfortable AI",backgroundType:"preset",backgroundValue:DEFAULT_BG,voiceEnabled:false,voiceType:"female",learnedAnswers:[]};
 let savedData=null;
 try{
   savedData=localStorage.getItem(STORAGE_KEY)||localStorage.getItem("comfortable-ai-v3")||localStorage.getItem("comfortable-ai-v1")||localStorage.getItem("comfortable-ai");
@@ -34,8 +34,10 @@ try{
 let state=migrateState(parsedState)||defaultState;
 if(!state.chats.length)state.chats=[...defaultState.chats];
 if(!state.activeChatId||!state.chats.some(c=>c.id===state.activeChatId))state.activeChatId=state.chats[0].id;
+state.learnedAnswers=Array.isArray(state.learnedAnswers)?state.learnedAnswers.filter(item=>item&&typeof item.question==="string"&&typeof item.answer==="string"):[];
 state.chats.forEach(c=>{
   c.pinned=!!c.pinned;
+  c.learningQuestion=typeof c.learningQuestion==="string"?c.learningQuestion:null;
   const history=Array.isArray(c.riddleHistory)?c.riddleHistory:[];
   const fromMessages=riddles.map((r,i)=>({i,q:normalize(r.q)}))
     .filter(item=>Array.isArray(c.messages)&&c.messages.some(m=>Array.isArray(m)&&m[0]==="assistant"&&normalize(m[1]).includes(item.q)))
@@ -55,8 +57,79 @@ save();
 const $=id=>document.getElementById(id),chatList=$("chatList"),messages=$("messages"),chatTitle=$("chatTitle"),input=$("messageInput"),composer=$("composer"),backgroundInput=$("backgroundInput");
 const chatSearchInput=$("chatSearchInput"),clearChatSearch=$("clearChatSearch");
 chatSearchInput.oninput=()=>render();
+loadSharedKnowledge();
 clearChatSearch.onclick=()=>{chatSearchInput.value="";render();chatSearchInput.focus()};
 
+const SHARED_KNOWLEDGE_URL="./knowledge.json";
+const LEARNING_ENDPOINT="";
+let sharedKnowledge=[];
+async function loadSharedKnowledge(){
+  try{
+    const response=await fetch(SHARED_KNOWLEDGE_URL,{cache:"no-store"});
+    if(!response.ok)return;
+    const data=await response.json();
+    sharedKnowledge=Array.isArray(data?.entries)?data.entries.filter(item=>item&&typeof item.question==="string"&&typeof item.answer==="string"):Array.isArray(data)?data:[];
+  }catch(error){
+    console.warn("Общая база знаний пока недоступна:",error);
+  }
+}
+function normalizeLearnedQuestion(text){
+  return normalize(cleanText(text)).replace(/[?!.]+$/g,"").trim();
+}
+function findLearnedAnswer(text){
+  const target=normalizeLearnedQuestion(text);
+  if(!target)return null;
+  const pool=[...sharedKnowledge,...(Array.isArray(state.learnedAnswers)?state.learnedAnswers:[])];
+  const exact=pool.find(item=>normalizeLearnedQuestion(item.question)===target);
+  if(exact)return exact.answer;
+  const similar=pool.find(item=>typoMatch(target,[normalizeLearnedQuestion(item.question)],1));
+  return similar?similar.answer:null;
+}
+function rememberLearnedAnswer(question,answer){
+  const q=cleanText(question);
+  const a=cleanText(answer);
+  if(!q||!a)return false;
+  const normalizedQuestion=normalizeLearnedQuestion(q);
+  state.learnedAnswers=Array.isArray(state.learnedAnswers)?state.learnedAnswers:[];
+  const existing=state.learnedAnswers.find(item=>normalizeLearnedQuestion(item.question)===normalizedQuestion);
+  const item={question:q,answer:a,learnedAt:new Date().toISOString()};
+  if(existing)Object.assign(existing,item);else state.learnedAnswers.push(item);
+  save();
+  syncLearnedAnswer(q,a);
+  return true;
+}
+function requestLearning(question){
+  const chat=activeChat();
+  chat.learningQuestion=cleanText(question);
+  save();
+  return addMessage("assistant","Я не знаю ответ на ваш вопрос. Можете подсказать мне, что это означает? Я запомню ответ.");
+}
+function cancelLearning(){
+  const chat=activeChat();
+  chat.learningQuestion=null;
+  save();
+  return addMessage("assistant","Хорошо, не буду запоминать этот вопрос.");
+}
+function handleLearningAnswer(text){
+  const chat=activeChat();
+  const question=chat.learningQuestion;
+  if(!question)return false;
+  const x=normalize(text);
+  if(x==="отмена"||x==="не хочу"||x==="не знаю")return cancelLearning();
+  if(text.trim().length<2)return addMessage("assistant","Напиши ответ чуть подробнее, чтобы я смогла его запомнить.");
+  chat.learningQuestion=null;
+  rememberLearnedAnswer(question,text);
+  addMessage("assistant","Спасибо! Я запомнила этот ответ и буду использовать его в следующий раз.");
+  return true;
+}
+async function syncLearnedAnswer(question,answer){
+  if(!LEARNING_ENDPOINT)return;
+  try{
+    await fetch(LEARNING_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question,answer})});
+  }catch(error){
+    console.warn("Не удалось отправить новое знание в общую базу:",error);
+  }
+}
 function calculateSimpleExpression(text){
   const raw=cleanText(text).replace(/^(сколько будет|посчитай|вычисли|реши)\s*/i,"").trim();
   if(!raw||raw.length>90)return null;
@@ -72,6 +145,8 @@ function calculateSimpleExpression(text){
 
 function localAnswer(text){
   const x=normalize(text);
+  const learned=findLearnedAnswer(text);
+  if(learned)return learned;
   const calc=calculateSimpleExpression(text);
   if(calc!==null)return "Ответ: "+calc;
   if(x.includes("какая сегодня дата")||x.includes("какое сегодня число")||x.includes("какой сегодня день")){
@@ -125,8 +200,7 @@ function localAnswer(text){
   if(x.includes("реши задачу")||x.includes("помоги решить")||x.includes("задача")){
     return "Напиши условие задачи полностью. Простые вычисления я умею решать сразу.";
   }
-  if(x.endsWith("?"))return "Я пока не знаю готового ответа на этот вопрос. Попробуй сформулировать его немного иначе или спроси о знакомой мне теме.";
-  return "Я пока умею отвечать на заранее подготовленные вопросы и по заданным правилам. Попробуй спросить меня о науке, учёбе, животных, английском, арабском, загадках или историях.";
+  return null;
 }
 
 let lastSubmittedText="";
@@ -175,6 +249,7 @@ function migrateState(old){
     talkMode:false,
     talkQuestionHistory:Array.isArray(c.talkQuestionHistory)?c.talkQuestionHistory.filter(q=>typeof q==="string"):[],
     pinned:!!c.pinned,
+    learningQuestion:typeof c.learningQuestion==="string"?c.learningQuestion:null,
   }));
   return {
     ...defaultState,
@@ -184,7 +259,8 @@ function migrateState(old){
     backgroundType:old.backgroundType==="image"?"image":"preset",
     backgroundValue:old.backgroundValue||defaultState.backgroundValue,
     voiceEnabled:!!old.voiceEnabled,
-    voiceType:["female","male","child"].includes(old.voiceType)?old.voiceType:defaultState.voiceType
+    voiceType:["female","male","child"].includes(old.voiceType)?old.voiceType:defaultState.voiceType,
+    learnedAnswers:Array.isArray(old.learnedAnswers)?old.learnedAnswers.filter(item=>item&&typeof item.question==="string"&&typeof item.answer==="string"):[]
   };
 }
 function save(){
@@ -269,7 +345,8 @@ function render(){
           riddleHistory:[],
           talkMode:false,
           talkQuestionHistory:[],
-          pinned:false
+          pinned:false,
+          learningQuestion:null
         });
       }
       if(!state.chats.some(c=>c.id===state.activeChatId)){
@@ -736,10 +813,16 @@ function conversationReply(text){
     ]));
   }
 
-  return localAnswer(text);
+  const answer=localAnswer(text);
+  if(answer)return addMessage("assistant",answer);
+  return requestLearning(text);
 }
 
-function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях использует собственную систему заранее подготовленных ответов и правил."); if(activeChat().talkMode){conversationReply(text);return;} return addMessage("assistant",localAnswer(text));
+function ordinaryReply(text){ const x=normalize(text); if(healthReply(text))return; if(illnessReply(text))return; if(x.includes("я сдаюсь")||x==="сдаюсь")return giveUp(); if(x==="подсказка"||x.includes("дай подсказку")||x.includes("намек")||x.includes("подскажи"))return giveHint(); if(x.includes("загад"))return setRiddle(); if(x.includes("истори"))return story(); if(x.includes("поговор"))return addMessage("assistant","Нажми кнопку «Поговорить», и я спрошу, о чём хочешь рассказать."); if(currentRiddle()){if(checkRiddle(text))return;} if(x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")||x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")){activeChat().talkMode=false;return addMessage("assistant",Math.random()<0.5?"Уа алейкум ассалям уа рахматуллахи уа баракатух! Чем могу помочь?":"Уа алейкум ассалям уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("джазакилляху хейрон")||x.includes("джазакиллаху хейран"))return addMessage("assistant","Ваияки! "); if(x==="спасибо"||x.includes("благодар"))return addMessage("assistant","Джазакилляху хейрон! "); if(x==="пока"||x.includes("до свидания")||x.includes("увидимся")){activeChat().talkMode=false;save();return addMessage("assistant","Пока! Пусть у тебя будет хороший день. Ассаляму алейкум!");} if(x.includes("кто тебя создал")||x.includes("кто тебя сделал"))return addMessage("assistant","Меня создала Деккушева Джамиля "); if(x.includes("кто ты"))return addMessage("assistant","Я — "+state.assistantName+" "); if(typoMatch(text,["дурак","тупой","идиот"])||x.includes("туп"))return addMessage("assistant","Давай без обидных слов Я всё равно постараюсь спокойно помочь."); if(x.includes("привет")){activeChat().talkMode=false;save();return addMessage("assistant",Math.random()<0.5?"Ассаляму алейкум уа рахматуллахи уа баракатух! Чем могу помочь?":"Ассаляму алейкум уа рахматуллахи уа баракатух! Как дела?");} if(x.includes("как дела"))return addMessage("assistant","Альхамдулиллях, хорошо А как у тебя дела?"); if(x.includes("что ты умеешь")||x.includes("что умеешь"))return addMessage("assistant","Я умею разговаривать, придумывать истории и загадки, давать подсказки, запоминать твои чаты и поддерживать обычный разговор. В обычных сообщениях использует собственную систему заранее подготовленных ответов и правил."); if(handleLearningAnswer(text))return;
+  if(activeChat().talkMode){conversationReply(text);return;}
+  const answer=localAnswer(text);
+  if(answer)return addMessage("assistant",answer);
+  return requestLearning(text);
 }
 function submitMessage(rawText){
   const text=cleanText(rawText);
@@ -765,7 +848,7 @@ function submitMessage(rawText){
     }
   },180);
 }
-composer.onsubmit=e=>{e.preventDefault();submitMessage(input.value)};$("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[],pinned:false};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
+composer.onsubmit=e=>{e.preventDefault();submitMessage(input.value)};$("newChatButton").onclick=()=>{const c={id:String(Date.now()+Math.random()),name:"Новый чат",messages:[["assistant","Ассаляму алейкум уа рахматуллахи уа баракатух! "]],riddle:null,riddleHistory:[],talkMode:false,talkQuestionHistory:[],pinned:false,learningQuestion:null};state.chats.unshift(c);state.activeChatId=c.id;save();render();input.focus()};
 $("renameChatButton").onclick=()=>{const name=prompt("Название чата:",activeChat().name);if(name&&name.trim()){activeChat().name=name.trim();save();render()}};
 $("nameButton").onclick=()=>{const name=prompt("Как назвать помощника?",state.assistantName);if(name&&name.trim()){state.assistantName=name.trim();save();render();addMessage("assistant","Теперь я буду называться "+state.assistantName+" ")}};
 $("backgroundButton").onclick=()=>openModal("backgroundPanel");$("closeBackground").onclick=()=>closeModal("backgroundPanel");$("uploadBackground").onclick=()=>backgroundInput.click();$("resetBackground").onclick=()=>{state.backgroundType="preset";state.backgroundValue=DEFAULT_BG;save();render()};
