@@ -835,6 +835,7 @@ function submitMessage(rawText){
   input.value="";
   setTimeout(()=>{
     try{
+      if(handleLearningAnswer(text))return;
       const x=normalize(text);
       if(x.includes("уа алейкум")||x.includes("алейкум салям")||x.includes("алейкум ассалям")||x.includes("ассаляму алейкум")||x.includes("салам алейкум")||x.includes("салям алейкум")){
         activeChat().talkMode=false;
