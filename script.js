@@ -234,10 +234,37 @@ function normalizeLearnedQuestion(text){
 function findLearnedAnswer(text){
   const target=normalizeLearnedQuestion(text);
   if(!target)return null;
+
   const pool=[...sharedKnowledge,...(Array.isArray(state.learnedAnswers)?state.learnedAnswers:[])];
   const exact=pool.find(item=>normalizeLearnedQuestion(item.question)===target);
   if(exact)return exact.answer;
-  const similar=pool.find(item=>typoMatch(target,[normalizeLearnedQuestion(item.question)],1));
+
+  const chat=activeChat();
+  const messages=Array.isArray(chat?.messages)?chat.messages:[];
+  for(let i=0;i<messages.length;i++){
+    const item=messages[i];
+    if(!Array.isArray(item)||item[0]!=="user")continue;
+    if(normalizeLearnedQuestion(item[1])!==target)continue;
+
+    const unknown=messages[i+1];
+    const taught=messages[i+2];
+    if(
+      Array.isArray(unknown)&&unknown[0]==="assistant"&&
+      String(unknown[1]).startsWith("Я не знаю ответ на ваш вопрос.")&&
+      Array.isArray(taught)&&taught[0]==="user"
+    ){
+      const answer=cleanText(taught[1]);
+      if(answer){
+        rememberLearnedAnswer(item[1],answer);
+        return answer;
+      }
+    }
+  }
+
+  const similar=pool.find(item=>{
+    const candidate=normalizeLearnedQuestion(item.question);
+    return candidate===target||typoMatch(target,candidate.split(/\s+/),1);
+  });
   return similar?similar.answer:null;
 }
 function rememberLearnedAnswer(question,answer){
