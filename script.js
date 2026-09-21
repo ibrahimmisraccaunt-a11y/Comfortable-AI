@@ -65,6 +65,25 @@ const AI_MODELS=[
   {name:"SmolLM2 360M — WASM q4",id:"HuggingFaceTB/SmolLM2-360M-Instruct",dtype:"q4",device:"wasm"}
 ];
 let aiGenerator=null,aiModelIndex=-1,aiLoading=false,aiFailed=false,aiReady=false;
+let transformersReadyPromise=null;
+function waitForTransformers(){
+  if(window.ComfortableAITransformers?.pipeline)return Promise.resolve(window.ComfortableAITransformers);
+  if(window.ComfortableAITransformersError)return Promise.resolve(null);
+  if(!transformersReadyPromise){
+    transformersReadyPromise=new Promise(resolve=>{
+      const ready=()=>{cleanup();resolve(window.ComfortableAITransformers||null)};
+      const failed=()=>{cleanup();resolve(null)};
+      const cleanup=()=>{
+        window.removeEventListener("comfortable-ai-transformers-ready",ready);
+        window.removeEventListener("comfortable-ai-transformers-error",failed);
+      };
+      window.addEventListener("comfortable-ai-transformers-ready",ready,{once:true});
+      window.addEventListener("comfortable-ai-transformers-error",failed,{once:true});
+      setTimeout(()=>{cleanup();resolve(window.ComfortableAITransformers||null)},12000);
+    });
+  }
+  return transformersReadyPromise;
+}
 
 function setAIStatus(text){
   const el=$("aiStatus");
@@ -77,10 +96,10 @@ async function loadAIModel(startIndex=0){
   if(aiFailed&&startIndex===0)return null;
   aiLoading=true;
   aiFailed=false;
-  const t=window.ComfortableAITransformers;
+  const t=await waitForTransformers();
   if(!t?.pipeline){
     aiLoading=false;
-    setAIStatus("модуль AI ещё загружается");
+    setAIStatus("модуль AI недоступен — работают встроенные ответы");
     return null;
   }
 
