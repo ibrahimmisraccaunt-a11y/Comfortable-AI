@@ -26,6 +26,18 @@ const rules=[
 const $=id=>document.getElementById(id);
 function normalize(s){return String(s).toLocaleLowerCase("ru").replace(/ё/g,"е").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim()}
 function addBubble(text,who){const el=document.createElement("div");el.className="bubble "+who;el.textContent=text;$("messages").append(el);$("messages").scrollTop=$("messages").scrollHeight}
-function reply(text){const q=normalize(text);const found=rules.find(r=>r.keys.some(k=>q.includes(normalize(k))));addBubble(found?found.answer:"Я модель, предназначенная для создания приложений, поэтому не могу поддержать обычный разговор или ответить на этот вопрос. Для общения на разные темы можешь использовать другое приложение.", "bot")}
+function reply(text){const q=normalize(text);
+if(/игр|кот|монет|пружин|прыгает/.test(q)){
+const el=document.createElement("div");el.className="bubble bot";el.style.maxWidth="100%";el.innerHTML='<b>Готово — вот прототип игры «Кот и монетки».</b><p>Управление: стрелки ← → или A/D, прыжок — пробел. Собирай монетки и перепрыгивай через пружины!</p><canvas id="catGame" width="600" height="280" style="display:block;width:100%;max-width:600px;background:#dff4ff;border-radius:12px;touch-action:manipulation"></canvas><p id="gameScore">Монетки: 0</p><button type="button" id="gameRestart">Начать заново</button>';
+$("messages").append(el);const cv=el.querySelector("#catGame"),ctx=cv.getContext("2d"),scoreEl=el.querySelector("#gameScore");let x=45,y=205,vy=0,coins=0,items=[],keys={},frame=0,alive=true;
+function reset(){x=45;y=205;vy=0;coins=0;items=[];frame=0;alive=true;scoreEl.textContent="Монетки: 0";draw()}
+function draw(){ctx.clearRect(0,0,600,280);ctx.fillStyle="#a8dc87";ctx.fillRect(0,245,600,35);ctx.fillStyle="#438e48";ctx.fillRect(0,245,600,5);
+if(frame%75===0)items.push({x:620,y:Math.random()<.5?205:225,type:Math.random()<.72?"coin":"spring"});
+for(const it of items){it.x-=3;if(it.type==="coin"){ctx.fillStyle="#ffca28";ctx.beginPath();ctx.arc(it.x,it.y,9,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e79c00";ctx.lineWidth=3;ctx.stroke()}else{ctx.strokeStyle="#ef5360";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(it.x-12,245);ctx.lineTo(it.x-6,235);ctx.lineTo(it.x,245);ctx.lineTo(it.x+6,235);ctx.lineTo(it.x+12,245);ctx.stroke()}
+if(it.x>x-8&&it.x<x+34&&Math.abs(it.y-(y+20))<23){if(it.type==="coin"){it.x=-100;coins++;scoreEl.textContent="Монетки: "+coins}else if(y>205){alive=false;ctx.fillStyle="#b22";ctx.font="bold 24px sans-serif";ctx.fillText("Ой! Нажми «Начать заново»",135,100)}}}
+items=items.filter(i=>i.x>-30);ctx.font="30px sans-serif";ctx.fillText("🐱",x,y+28);ctx.fillStyle="#4d3b6e";ctx.font="14px sans-serif";ctx.fillText("Собирай монетки!",12,22);
+if(alive){if(keys.ArrowRight||keys.d||keys.D)x=Math.min(550,x+4);if(keys.ArrowLeft||keys.a||keys.A)x=Math.max(0,x-4);if((keys[" "]||keys.ArrowUp||keys.w||keys.W)&&y>=205)vy=-10;vy+=.48;y+=vy;if(y>205){y=205;vy=0}frame++;requestAnimationFrame(draw)}}
+window.addEventListener("keydown",e=>{keys[e.key]=true;if([" ","ArrowLeft","ArrowRight","ArrowUp"].includes(e.key))e.preventDefault()});window.addEventListener("keyup",e=>keys[e.key]=false);cv.addEventListener("pointerdown",()=>{if(y>=205)vy=-10});el.querySelector("#gameRestart").addEventListener("click",reset);draw();$("messages").scrollTop=$("messages").scrollHeight;return}
+const found=rules.find(r=>r.keys.some(k=>q.includes(normalize(k))));addBubble(found?found.answer:"Я модель, предназначенная для создания приложений, поэтому не могу поддержать обычный разговор или ответить на этот вопрос. Для общения на разные темы можешь использовать другое приложение.", "bot")}
 $("send").addEventListener("submit",e=>{e.preventDefault();const q=$("question").value.trim();if(!q)return;addBubble(q,"user");$("question").value="";reply(q);$("question").focus()});
 </script></body></html>
