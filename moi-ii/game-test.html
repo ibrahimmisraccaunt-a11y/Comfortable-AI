@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#6750a4">
+<title>Мой ИИ — версия с игрой</title>
+<style>
+:root{--p:#6750a4;--line:#e6e0ef;--ink:#282337;--muted:#706b7d}*{box-sizing:border-box}body{margin:0;padding:18px;background:#f7f4fc;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif}.app{max-width:760px;margin:auto;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 16px 45px #32205012}header{display:flex;align-items:center;gap:12px;padding:20px;border-bottom:1px solid var(--line)}.logo{background:var(--p);color:white;border-radius:14px;padding:12px;font-weight:800}h1{font-size:22px;margin:0}header p{margin:3px 0 0;color:var(--muted);font-size:13px}.content{padding:18px}.hint{background:#f5f0ff;padding:13px;border-radius:13px;font-size:14px;line-height:1.5;color:#5c5077}.chat{display:grid;gap:12px;margin-top:20px}.messages{min-height:240px;max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:9px;padding:4px}.bubble{max-width:90%;padding:10px 13px;border-radius:14px;background:#f0edf7;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}.user{align-self:flex-end;background:var(--p);color:white}.bot{align-self:flex-start}.send{display:flex;gap:8px}.send input{flex:1;min-width:0;font:inherit;padding:12px;border:1px solid #dcd5e8;border-radius:11px;outline-color:var(--p)}button{font:inherit;border:0;border-radius:11px;padding:11px 16px;cursor:pointer;background:var(--p);color:white;font-weight:650}small,footer{color:var(--muted);font-size:12px;line-height:1.5}footer{display:block;border-top:1px solid var(--line);padding:14px 18px}@media(max-width:500px){body{padding:0}.app{border:0;border-radius:0;min-height:100vh}.content{padding:14px}.send{flex-direction:column}.messages{min-height:200px}}
+</style></head>
+<body><main class="app"><header><div class="logo">ИИ</div><div><h1>Мой ИИ</h1><p>Помощник для создания приложений</p></div></header>
+<div class="content"><div class="hint">Я помогаю с созданием приложений и отвечаю на знакомые вопросы. Мои ответы заранее заданы — пользователь не может обучать меня или менять список ответов.</div>
+<section class="chat"><div id="messages" class="messages"><div class="bubble bot">Привет! Я «Мой ИИ» — помощник для создания приложений. Опиши, какое приложение хочешь сделать, или задай вопрос о создании приложений.</div></div><form id="send" class="send"><input id="question" placeholder="Напиши вопрос или опиши приложение…" autocomplete="off" required><button type="submit">Отправить</button></form><small>Если вопрос не входит в мой список, я честно скажу об этом.</small></section></div>
+<footer>Ответы на знакомые вопросы встроены в приложение и не редактируются пользователем. Для обычного общения можно использовать другое приложение.</footer></main>
+<script>
+const rules=[
+{keys:["привет","здравствуй","здравствуйте","добрый день","салам","ассаляму"],answer:"Привет! Я «Мой ИИ» — помощник для создания приложений. Чем могу помочь с приложением?"},
+{keys:["что ты умеешь","что ты можешь","твои возможности","что ты делаешь"],answer:"Я предназначен для помощи в создании приложений. Опиши, какое приложение хочешь сделать, и я помогу сформулировать его идею."},
+{keys:["создать приложение","сделать приложение","хочу приложение","конструктор приложений"],answer:"Опиши приложение: для чего оно нужно, какие экраны и кнопки должны быть, и что должно происходить при нажатии. Я помогу подготовить описание приложения."},
+{keys:["как создать приложение","с чего начать","начать разработку"],answer:"Начни с простой идеи: кто будет пользоваться приложением, какую задачу оно решает и какие 2–3 главные функции нужны. Затем можно продумать экраны и поведение кнопок."},
+{keys:["исправить ошибку","ошибка в приложении","не работает приложение","баг"],answer:"Опиши, что именно не работает, что ты ожидал увидеть и что происходит на самом деле. Если есть текст ошибки, пришли его."},
+{keys:["сохранить","сохранение данных","данные сохраняются"],answer:"Чтобы данные сохранялись после закрытия приложения, нужно предусмотреть хранилище. Для простой веб-версии подойдёт локальное хранилище браузера; для синхронизации между устройствами обычно нужен сервер."},
+{keys:["скачать приложение","как скачать","установить приложение"],answer:"Способ установки зависит от типа приложения: веб-приложение открывается по ссылке, а мобильное обычно собирают в пакет для Android или iOS."},
+{keys:["кто тебя сделал","кто ты","ты настоящий","ты человек"],answer:"Я программа-помощник, а не человек. Я создан для задач, связанных с приложениями."},
+{keys:["спасибо","благодарю"],answer:"Пожалуйста! Удачи с твоим приложением."},
+{keys:["пока","до свидания","до встречи"],answer:"Пока! Удачи в создании приложения."}
+];
+const $=id=>document.getElementById(id);
+function normalize(s){return String(s).toLocaleLowerCase("ru").replace(/ё/g,"е").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim()}
+function addBubble(text,who){const el=document.createElement("div");el.className="bubble "+who;el.textContent=text;$("messages").append(el);$("messages").scrollTop=$("messages").scrollHeight}
+function reply(text){const q=normalize(text);
+if(/игр|кот|монет|пружин|прыгает/.test(q)){
+const el=document.createElement("div");el.className="bubble bot";el.style.maxWidth="100%";el.innerHTML='<b>Готово — вот прототип игры «Кот и монетки».</b><p>Управление: стрелки ← → или A/D, прыжок — пробел. Собирай монетки и перепрыгивай через пружины!</p><canvas id="catGame" width="600" height="280" style="display:block;width:100%;max-width:600px;background:#dff4ff;border-radius:12px;touch-action:manipulation"></canvas><p id="gameScore">Монетки: 0</p><button type="button" id="gameRestart">Начать заново</button>';
+$("messages").append(el);const cv=el.querySelector("#catGame"),ctx=cv.getContext("2d"),scoreEl=el.querySelector("#gameScore");let x=45,y=205,vy=0,coins=0,items=[],keys={},frame=0,alive=true;
+function reset(){x=45;y=205;vy=0;coins=0;items=[];frame=0;alive=true;scoreEl.textContent="Монетки: 0";draw()}
+function draw(){ctx.clearRect(0,0,600,280);ctx.fillStyle="#a8dc87";ctx.fillRect(0,245,600,35);ctx.fillStyle="#438e48";ctx.fillRect(0,245,600,5);
+if(frame%75===0)items.push({x:620,y:Math.random()<.5?205:225,type:Math.random()<.72?"coin":"spring"});
+for(const it of items){it.x-=3;if(it.type==="coin"){ctx.fillStyle="#ffca28";ctx.beginPath();ctx.arc(it.x,it.y,9,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e79c00";ctx.lineWidth=3;ctx.stroke()}else{ctx.strokeStyle="#ef5360";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(it.x-12,245);ctx.lineTo(it.x-6,235);ctx.lineTo(it.x,245);ctx.lineTo(it.x+6,235);ctx.lineTo(it.x+12,245);ctx.stroke()}
+if(it.x>x-8&&it.x<x+34&&Math.abs(it.y-(y+20))<23){if(it.type==="coin"){it.x=-100;coins++;scoreEl.textContent="Монетки: "+coins}else if(y>205){alive=false;ctx.fillStyle="#b22";ctx.font="bold 24px sans-serif";ctx.fillText("Ой! Нажми «Начать заново»",135,100)}}}
+items=items.filter(i=>i.x>-30);ctx.font="30px sans-serif";ctx.fillText("🐱",x,y+28);ctx.fillStyle="#4d3b6e";ctx.font="14px sans-serif";ctx.fillText("Собирай монетки!",12,22);
+if(alive){if(keys.ArrowRight||keys.d||keys.D)x=Math.min(550,x+4);if(keys.ArrowLeft||keys.a||keys.A)x=Math.max(0,x-4);if((keys[" "]||keys.ArrowUp||keys.w||keys.W)&&y>=205)vy=-10;vy+=.48;y+=vy;if(y>205){y=205;vy=0}frame++;requestAnimationFrame(draw)}}
+window.addEventListener("keydown",e=>{keys[e.key]=true;if([" ","ArrowLeft","ArrowRight","ArrowUp"].includes(e.key))e.preventDefault()});window.addEventListener("keyup",e=>keys[e.key]=false);cv.addEventListener("pointerdown",()=>{if(y>=205)vy=-10});el.querySelector("#gameRestart").addEventListener("click",reset);draw();$("messages").scrollTop=$("messages").scrollHeight;return}
+const found=rules.find(r=>r.keys.some(k=>q.includes(normalize(k))));addBubble(found?found.answer:"Я модель, предназначенная для создания приложений, поэтому не могу поддержать обычный разговор или ответить на этот вопрос. Для общения на разные темы можешь использовать другое приложение.", "bot")}
+$("send").addEventListener("submit",e=>{e.preventDefault();const q=$("question").value.trim();if(!q)return;addBubble(q,"user");$("question").value="";reply(q);$("question").focus()});
+</script></body></html>
