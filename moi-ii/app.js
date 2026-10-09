@@ -1,0 +1,17 @@
+const KEY="moi-ii-rules-v1";
+const starter=[{phrase:"привет",answer:"Привет! Рада тебя видеть."},{phrase:"как дела",answer:"У меня всё хорошо! А у тебя?"},{phrase:"пока",answer:"Пока! До скорой встречи."},{phrase:"спасибо",answer:"Пожалуйста!"}];
+let rules;try{rules=JSON.parse(localStorage.getItem(KEY)||"null");if(!Array.isArray(rules))rules=starter.slice()}catch{rules=starter.slice()}
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(rules));
+const normalize=s=>String(s).toLocaleLowerCase("ru").replace(/ё/g,"е").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
+function bubble(text,who){const el=document.createElement("div");el.className="bubble "+who;el.textContent=text;$("chat").append(el);$("chat").scrollTop=$("chat").scrollHeight}
+function reply(text){const q=normalize(text);const sorted=rules.filter(r=>normalize(r.phrase)).sort((a,b)=>normalize(b.phrase).length-normalize(a.phrase).length);const found=sorted.find(r=>q.includes(normalize(r.phrase)));bubble(found?found.answer:"Я пока не знаю ответ на это. Открой «Мои фразы» и добавь подходящую фразу с ответом.","bot")}
+$("sendForm").addEventListener("submit",e=>{e.preventDefault();const v=$("message").value.trim();if(!v)return;bubble(v,"user");$("message").value="";reply(v)});
+$("manageBtn").onclick=()=>{$("editor").classList.toggle("hidden");renderRules();if(!$("editor").classList.contains("hidden"))$("editor").scrollIntoView({behavior:"smooth",block:"start"})};
+$("closeEditor").onclick=()=>$("editor").classList.add("hidden");
+$("addRule").onclick=()=>{const phrase=$("phrase").value.trim(),answer=$("answer").value.trim();if(!phrase||!answer){alert("Заполни и фразу, и ответ.");return}rules.unshift({phrase,answer});save();$("phrase").value="";$("answer").value="";renderRules()};
+function renderRules(){const root=$("ruleList");root.replaceChildren();if(!rules.length){root.textContent="Список пуст. Добавь первую фразу выше.";return}rules.forEach((r,i)=>{const card=document.createElement("article");card.className="rule";const title=document.createElement("strong");title.textContent="Если пользователь напишет: "+r.phrase;const answer=document.createElement("p");answer.textContent="Ответ: "+r.answer;const del=document.createElement("button");del.textContent="Удалить";del.onclick=()=>{rules.splice(i,1);save();renderRules()};card.append(title,answer,del);root.append(card)})}
+$("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify({version:1,entries:rules},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="moi-ii-phrases.json";a.click();URL.revokeObjectURL(url)};
+$("importFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());const arr=Array.isArray(data)?data:data.entries;if(!Array.isArray(arr)||!arr.every(x=>x&&typeof x.phrase==="string"&&typeof x.answer==="string"))throw Error();rules=arr;save();renderRules();alert("Список загружен.")}catch{alert("Не удалось прочитать файл. Нужен JSON со списком phrase и answer.")}e.target.value=""};
+$("resetBtn").onclick=()=>{if(confirm("Удалить все сохранённые фразы?")){rules=[];save();renderRules()}};
+renderRules();
