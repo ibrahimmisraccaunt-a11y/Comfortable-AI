@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#6750a4"><title>Мой ИИ</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="app">
+<header><div class="logo">ИИ</div><div><h1>Мой ИИ</h1><p>Отвечает только по твоему списку</p></div><button id="manageBtn" class="soft">Мои фразы</button></header>
+<section class="notice">Это не подключённая нейросеть: ответы берутся только из правил, которые ты добавишь. Если ответа нет, помощник честно скажет об этом.</section>
+<section id="chat" class="chat" aria-live="polite"><div class="bubble bot">Привет! Добавь фразы и ответы в разделе «Мои фразы», а потом напиши мне сообщение.</div></section>
+<form id="sendForm" class="composer"><input id="message" placeholder="Напиши сообщение…" autocomplete="off" required><button>Отправить</button></form>
+<section id="editor" class="editor hidden"><div class="editorHead"><h2>Мои фразы и ответы</h2><button id="closeEditor" class="soft" type="button">Закрыть</button></div>
+<p>Для каждой записи укажи слова или фразу, по которым нужно найти ответ. Изменения сохраняются на этом устройстве.</p>
+<div class="fields"><label>Фраза пользователя<input id="phrase" placeholder="Например: привет"></label><label>Ответ помощника<textarea id="answer" rows="3" placeholder="Например: Привет! Как дела?"></textarea></label><button id="addRule" type="button">Добавить фразу</button></div>
+<div class="tools"><button id="exportBtn" type="button" class="soft">Сохранить список в файл</button><label class="importBtn soft">Загрузить список<input id="importFile" type="file" accept="application/json,.json" hidden></label><button id="resetBtn" type="button" class="danger">Очистить список</button></div>
+<div id="ruleList" class="ruleList"></div></section>
+<footer>Твои записи хранятся в памяти браузера. Интернет и внешние ИИ-модели для ответов не используются.</footer></main><script src="app.js"></script></body></html>
