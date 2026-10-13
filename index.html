@@ -1,14 +1,788 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Мой ИИ</title>
-<script>location.replace("./moi-ii/share.html?v=3");</script>
-<noscript><meta http-equiv="refresh" content="0;url=./moi-ii/share.html?v=3"></noscript>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0c0d13"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2040%2040%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%2338bdf8%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%238b5cf6%22/%3E%3C/linearGradient%3E%3ClinearGradient%20id=%22j%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%2322d3ee%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%23a855f7%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath%20d=%22M20%203C10.6%203%203%2010%203%2018.6c0%204.6%202.2%208.7%205.7%2011.5L7.5%2036.2c-.2.9.8%201.6%201.6%201.1l6.6-3.7c1.3.3%202.8.5%204.3.5%209.4%200%2017-7%2017-15.5S29.4%203%2020%203z%22%20fill=%22%230b0b14%22%20stroke=%22url%28%23g%29%22%20stroke-width=%221.6%22/%3E%3Cg%20transform=%22translate%281.5%20-0.5%29%22%3E%3Cg%20transform=%22rotate%2818%2020%2019%29%22%3E%3Cpath%20d=%22M23%209.5v12.2c0%203.2-2.4%205.3-5.6%205.3-1.4%200-2.6-.4-3.6-1.1%22%20fill=%22none%22%20stroke=%22url%28%23j%29%22%20stroke-width=%223.6%22%20stroke-linecap=%22round%22/%3E%3C/g%3E%3Ccircle%20cx=%2211.5%22%20cy=%2215.2%22%20r=%222.7%22%20fill=%22%23fff%22/%3E%3Cpath%20d=%22M8.8%2018.9l-1%201.6M11.5%2019.6v1.6M14.2%2018.9l1%201.6%22%20fill=%22none%22%20stroke=%22%23fff%22%20stroke-opacity=%22.65%22%20stroke-width=%221.3%22%20stroke-linecap=%22round%22/%3E%3C/g%3E%3C/svg%3E">
+<title>ChatJAMI — ИИ-чат на русском</title>
+<meta name="description" content="ChatJAMI — бесплатный ИИ-помощник в формате мессенджера. Несколько чатов, светлая и тёмная тема.">
+<meta property="og:title" content="ChatJAMI">
+<meta property="og:description" content="ИИ-помощник в формате мессенджера">
+<meta property="og:type" content="website">
+<style>
+:root{--sand:#fbfbfd;--dim:rgba(0,0,0,.1);--panel-a:rgba(255,255,255,.8);--bg:#dbe5ea;--panel:#fff;--text:#0b0b0b;--muted:#8a9aa6;--in:#fff;--out:#effdde;--accent:#3390ec;--meta:#5fa84a;--line:#e4e9ed;--chip:rgba(0,0,0,.28);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sand:#12141c;--dim:rgba(0,0,0,.35);--panel-a:rgba(23,33,43,.8);--bg:#0e1621;--panel:#17212b;--text:#f5f5f5;--muted:#708499;--in:#182533;--out:#2b5278;--accent:#6ab3f3;--meta:#7da8d3;--line:#0e1621;--chip:rgba(255,255,255,.12)}}
+:root[data-theme="dark"]{--sand:#12141c;--dim:rgba(0,0,0,.35);--panel-a:rgba(23,33,43,.8);--bg:#0e1621;--panel:#17212b;--text:#f5f5f5;--muted:#708499;--in:#182533;--out:#2b5278;--accent:#6ab3f3;--meta:#7da8d3;--line:#0e1621;--chip:rgba(255,255,255,.12)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--sand);color:var(--text);font:16px/1.35 -apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+#app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;background:transparent;position:relative;z-index:1}
+#bgimg{position:fixed;inset:0;z-index:0;display:none;overflow:hidden}
+#bgimg img{width:100%;height:100%;object-fit:cover;display:block}
+#bgimg .dim{position:absolute;inset:0;background:var(--dim)}
+body.hasbg #rows{background:transparent}
+body.hasbg .row{background:var(--panel-a);margin:6px 8px;border-radius:12px;padding:8px 8px 8px 10px}
+body.hasbg .empty{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+#sand{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.view{display:none;flex:1;min-height:0;flex-direction:column}.view.on{display:flex}
+header{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;background:var(--panel-a);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.ava{width:44px;height:44px;flex:none;display:grid;place-items:center;filter:drop-shadow(0 2px 5px rgba(110,100,240,.35))}.ava svg{width:100%;height:100%;display:block}
+.who{flex:1;min-width:0}.name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status.typing{color:var(--accent)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.ib{width:40px;height:40px;border-radius:50%;font-size:20px;color:var(--muted);flex:none}.ib:hover{background:var(--chip)}
+.ib svg{width:22px;height:22px;display:block;margin:auto}
+.ib svg,.act svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.act svg{width:15px;height:15px}.act button{display:inline-flex;align-items:center;gap:5px}
+.lnk{color:var(--accent);font-weight:600;font-size:14px;padding:7px 12px;border:1px solid var(--accent);border-radius:999px}
+.blk{display:block}
+#sb{display:flex;align-items:center;gap:8px;margin:8px 8px 0;padding:0 8px 0 12px;border-radius:14px;background:var(--panel-a);color:var(--muted);flex:none;position:relative;z-index:1}
+#sb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#sb input{flex:1;min-width:0;border:0;background:none;color:var(--text);font:inherit;padding:12px 0;outline:none}
+#sb button{color:var(--muted);padding:6px;border-radius:50%;display:grid;place-items:center}
+.pn{width:14px;height:14px;fill:currentColor;vertical-align:-2px;margin-right:5px;color:var(--accent)}
+.logo{display:flex;align-items:center;gap:8px}.logo .lg{width:32px;height:32px;flex:none}
+.wm{font-weight:500;font-size:21px;letter-spacing:.2px;line-height:1}
+.wm b{font-weight:800;background:linear-gradient(90deg,#38bdf8,#8b5cf6,#ec4899,#38bdf8);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:lgs 6s linear infinite}
+@keyframes lgs{to{background-position:200% 0}}
+@media (prefers-reduced-motion:reduce){.wm b{animation:none}}
+#cl{align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--panel-a);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--muted)}
+#cl button{color:var(--accent);font-weight:600;padding:8px 12px;border-radius:10px}
+#pv{align-items:center;gap:10px;padding:6px 12px;background:var(--panel-a);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--muted);font-size:14px}
+#pv img{width:44px;height:44px;object-fit:cover;border-radius:8px}#pv span{flex:1}
+.ph{display:block;max-width:100%;max-height:200px;border-radius:10px;margin-bottom:6px}
+#imgb.on{background:var(--accent);color:#fff}
+.pic{width:min(300px,70vw);margin-bottom:6px}.pic img{display:block;width:100%;border-radius:12px;background:#fff}
+.pic .dl{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:4px 8px;margin-top:4px;border-radius:10px;color:var(--muted)}
+.pic .dl svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.msg ul,.msg ol{margin:4px 0;padding-left:22px}.msg li{margin:1px 0}
+.mp{margin:3px 0}.mh{font-weight:700;margin:6px 0 2px}
+.mc{font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;background:rgba(127,127,127,.2);padding:1px 5px;border-radius:5px}
+.cb{margin:6px 0;border-radius:10px;background:rgba(127,127,127,.16);overflow:hidden}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 2px 10px;font-size:12px;color:var(--muted)}
+.ch button{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 8px;border-radius:8px;color:var(--muted)}
+.ch button:hover{background:var(--chip)}
+.ch svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cb pre{margin:0;padding:6px 10px 10px;overflow-x:auto;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre}
+#rows{flex:1;overflow-y:auto;background:var(--panel-a);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.row{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;cursor:pointer}.row:hover{background:var(--chip)}
+.rt{flex:1;min-width:0}.rn{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rp{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted)}
+.rm{font-size:18px;color:var(--muted);width:30px;height:26px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+#feed{flex:1;min-height:0;overflow-y:auto;padding:10px 10px 6px;display:flex;flex-direction:column;gap:4px}
+.chip{align-self:center;background:var(--chip);color:#fff;font-size:13px;padding:2px 10px;border-radius:12px;margin:6px 0}
+.msg{max-width:82%;padding:6px 10px 4px;border-radius:14px;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.msg>span:first-child{white-space:pre-wrap}
+.msg.in{align-self:flex-start;background:var(--in);border-bottom-left-radius:4px}
+.msg.out{align-self:flex-end;background:var(--out);border-bottom-right-radius:4px}
+.time{float:right;margin:6px 0 0 10px;font-size:12px;color:var(--meta)}.in .time{color:var(--muted)}
+.dots span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+footer{display:flex;align-items:flex-end;gap:6px;padding:8px;background:var(--panel-a);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#in{flex:1;resize:none;max-height:120px;border:0;outline:0;background:transparent;color:var(--text);font:inherit;padding:10px 6px}
+#in::placeholder{color:var(--muted)}
+#send{color:var(--accent);font-size:24px}
+#proj.on{background:var(--accent);color:#fff}
+.pl{display:inline-block;margin-top:8px;padding:9px 14px;border-radius:12px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600}
+.act{clear:both;display:flex;gap:2px;margin:2px -6px 0;flex-wrap:wrap}
+.act button{font-size:13px;padding:3px 8px;border-radius:10px;color:var(--muted)}
+.act button:hover{background:var(--chip)}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9}#ov[hidden]{display:none}
+#ov>div{background:var(--panel);color:var(--text);border-radius:14px;padding:16px;width:min(320px,90%)}
+.mt{font-weight:600;font-size:17px;margin-bottom:6px;overflow-wrap:anywhere}.mx{color:var(--muted);margin-bottom:6px;font-size:15px;overflow-wrap:anywhere}
+.mx{white-space:pre-line}#ov>div{max-height:88%;overflow-y:auto}
+.pc{display:flex;align-items:center;gap:12px;width:calc(100% - 16px);margin:8px;padding:10px 12px;border-radius:14px;background:var(--panel-a);color:var(--text);text-align:left;position:relative;z-index:1;flex:none}
+.pc svg{width:24px;height:24px;flex:none;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pc b{display:block;font-weight:600}.pc small{color:var(--muted);font-size:13px}
+#ov input{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--muted);background:var(--bg);color:var(--text);outline:0;margin:6px 0}
+.mb{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}.mb.col{flex-direction:column;gap:0}
+.mb button{padding:10px 12px;border-radius:10px;color:var(--accent);font-weight:600;text-align:left}.mb button:hover{background:var(--chip)}
+.mb .danger{color:#e5484d}
+.mb .fl{position:relative;display:block;overflow:hidden;padding:10px 12px;border-radius:10px;color:var(--accent);font-weight:600;cursor:pointer}.mb .fl:hover{background:var(--chip)}
+.mb .fl input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:16px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center;z-index:10}#toast.on{opacity:.95}
+</style>
 </head>
-<body><p>Открываю «Мой ИИ»… <a href="./moi-ii/share.html?v=3">Нажми здесь, если переход не произошёл.</a></p></body>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient><linearGradient id="lgj" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs></svg>
+<canvas id="sand" aria-hidden="true"></canvas>
+<div id="bgimg" aria-hidden="true"></div>
+<div id="app">
+  <section class="view" id="listv">
+    <header>
+      <div class="who"><div class="logo"><svg class="lg" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3C10.6 3 3 10 3 18.6c0 4.6 2.2 8.7 5.7 11.5L7.5 36.2c-.2.9.8 1.6 1.6 1.1l6.6-3.7c1.3.3 2.8.5 4.3.5 9.4 0 17-7 17-15.5S29.4 3 20 3z" fill="#0b0b14" stroke="url(#lgg)" stroke-width="1.6"/><g transform="translate(1.5 -0.5)"><g transform="rotate(18 20 19)"><path d="M23 9.5v12.2c0 3.2-2.4 5.3-5.6 5.3-1.4 0-2.6-.4-3.6-1.1" fill="none" stroke="url(#lgj)" stroke-width="3.6" stroke-linecap="round"/></g><circle cx="11.5" cy="15.2" r="2.7" fill="#fff"/><path d="M8.8 18.9l-1 1.6M11.5 19.6v1.6M14.2 18.9l1 1.6" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.3" stroke-linecap="round"/></g></svg><span class="wm">Chat<b>JAMI</b></span></div><div class="status">твои чаты</div></div>
+      <button class="ib th" aria-label="Сменить тему"></button>
+      <button class="ib" id="bgbtn" aria-label="Фон приложения"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 9"/></svg></button>
+      <button class="ib" id="sandbtn" aria-label="Анимация фона"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 15v5M16.5 17.5h5"/></svg></button>
+      <button class="ib" id="newc" aria-label="Новый чат"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
+    </header>
+    <div id="sb"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sq" type="text" placeholder="Поиск по всем чатам" autocomplete="off" aria-label="Поиск по чатам"><button id="sx" aria-label="Очистить" style="display:none"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <button id="tb" style="display:none;margin:4px 12px 0;color:var(--accent);font-weight:600;font-size:14px;padding:6px 8px;border-radius:8px;position:relative;z-index:1">Корзина · <span id="tn">0</span></button>
+    <button class="pc" id="pcard" aria-label="Время намаза"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/><path d="M17 3l.7 1.8 1.8.7-1.8.7L17 8l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span><b id="pn">Время намаза</b><small id="ps">Выбери город</small></span></button>
+    <div id="rows"></div>
+  </section>
+  <section class="view" id="chatv">
+    <header>
+      <button class="ib" id="back" aria-label="К списку чатов">←</button>
+      <div class="ava" id="hava"></div>
+      <div class="who"><div class="name" id="hn"></div><div class="status" id="st">в сети</div></div>
+      <button class="ib th" aria-label="Сменить тему"></button>
+      <button class="ib" id="menu" aria-label="Меню чата">⋮</button>
+    </header>
+    <main id="feed"></main>
+    <div id="cl" style="display:none"><span>Чат закрыт из-за оскорблений.</span><button id="clb">Новый чат</button></div>
+    <div id="arc" style="display:none;gap:8px;flex-wrap:wrap;padding:6px 12px;background:var(--panel-a);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)"><button data-t="Дай новое слово" class="lnk">Новое слово</button><button data-t="Проверь меня по пройденным словам" class="lnk">Проверь меня</button><button data-t="Повтори пройденные слова" class="lnk">Повтори слова</button><button data-t="Дай полезную фразу на сегодня" class="lnk">Фраза на сегодня</button></div>
+    <div id="pv" style="display:none"><img id="pvi" alt=""><span>Фото</span><button class="ib" id="pvx" aria-label="Убрать фото"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <footer>
+      <button class="ib" id="proj" aria-label="Создать проект"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/></svg></button>
+      <button class="ib" id="imgb" aria-label="Нарисовать картинку"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-1.6-1.5-1.6-1.5-3 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-3.9-4-7.3-9-7.3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></button>
+      <label class="ib" id="att" style="display:none;position:relative;align-items:center;justify-content:center;cursor:pointer" aria-label="Фото"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><input type="file" id="attf" accept="image/*" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></label>
+      <textarea id="in" rows="1" placeholder="Сообщение" maxlength="2000"></textarea>
+      <button class="ib" id="send" aria-label="Отправить"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M10 13l11-10"/></svg></button>
+    </footer>
+  </section>
+</div>
+<div id="ov" hidden><div></div></div>
+<div id="toast"></div>
+<div id="stu" style="display:none;position:fixed;inset:0;z-index:60;background:#0c0d13"><iframe id="stf" title="ChatJAMI Studio" style="width:100%;height:100%;border:0;display:block"></iframe></div>
+<script>
+/*GEN-START*/
+var API='https://comfortable-ai-proxy.YOUR-SUBDOMAIN.workers.dev'; // адрес вашего Worker после деплоя
+async function generate(msgs,ins,onText,persona,opt){
+  var r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,ins:ins,persona:persona||'',teacher:!!(opt&&opt.teacher),calc:(opt&&opt.calc)||[],memory:(opt&&opt.memory)||'',lang:(opt&&opt.lang)||'',image:(opt&&opt.image)?{media_type:opt.image.type,data:opt.image.data}:null})});
+  if(!r.ok){var e='';try{e=(await r.json()).error}catch(_){}throw new Error(e||('Ошибка '+r.status))}
+  var rd=r.body.getReader(),dec=new TextDecoder(),buf='',full='';
+  for(;;){var c=await rd.read();if(c.done)break;buf+=dec.decode(c.value,{stream:true});
+    var i;while((i=buf.indexOf('\n'))>=0){var line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+      if(line.indexOf('data:')!==0)continue;var j=line.slice(5).trim();if(!j)continue;
+      var ev;try{ev=JSON.parse(j)}catch(_){continue}
+      if(ev.type==='error')throw new Error('Сервис временно недоступен');
+      if(ev.type==='content_block_delta'&&ev.delta&&ev.delta.type==='text_delta'){full+=ev.delta.text;onText(full)}}}
+  return full}
+/*GEN-END*/
+var K='ccai_v1',S={chats:[],cur:null,trash:[],mem:false};
+try{var raw=JSON.parse(localStorage.getItem(K)||'null');if(raw&&Array.isArray(raw.chats)){S.chats=raw.chats.filter(function(c){return c&&c.id&&Array.isArray(c.msgs)});S.cur=raw.cur;S.mem=!!raw.mem;S.trash=Array.isArray(raw.trash)?raw.trash.filter(function(c){return c&&c.id&&Array.isArray(c.msgs)&&Date.now()-(c.deleted||0)<2592000000}):[]}}catch(_){}
+function save(){try{localStorage.setItem(K,JSON.stringify({cur:S.cur,chats:S.chats.map(function(c){return{id:c.id,title:c.title,custom:c.custom,ins:c.ins,persona:c.persona,teacher:c.teacher,closed:c.closed,pinned:c.pinned,arabic:c.arabic,lang:c.lang,updated:c.updated,msgs:c.msgs}}),trash:S.trash,mem:S.mem}))}catch(_){}}
+var $=function(i){return document.getElementById(i)},feed=$('feed'),inp=$('in'),stEl=$('st'),root=document.documentElement,listv=$('listv'),chatv=$('chatv');
+function cur(){return S.chats.find(function(c){return c.id===S.cur})}
+function hm(t){var d=new Date(t);return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}
+function dayKey(t){return new Date(t).toDateString()}
+function dayLabel(t){return dayKey(t)===new Date().toDateString()?'Сегодня':new Date(t).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}
+function col(id){var h=0;for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))%360;return 'hsl('+h+',55%,55%)'}
+function clean(x,k){x=x||'';var m=x.match(/^\s*\[\[insult\]\]\s*/);if(m){k.hit=true;return x.slice(m[0].length)}var s=x.trim();if(s&&s.length<10&&'[[insult]]'.indexOf(s)===0)return '';return x}
+var LOGO='<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3C10.6 3 3 10 3 18.6c0 4.6 2.2 8.7 5.7 11.5L7.5 36.2c-.2.9.8 1.6 1.6 1.1l6.6-3.7c1.3.3 2.8.5 4.3.5 9.4 0 17-7 17-15.5S29.4 3 20 3z" fill="#0b0b14" stroke="url(#lgg)" stroke-width="1.6"/><g transform="translate(1.5 -0.5)"><g transform="rotate(18 20 19)"><path d="M23 9.5v12.2c0 3.2-2.4 5.3-5.6 5.3-1.4 0-2.6-.4-3.6-1.1" fill="none" stroke="url(#lgj)" stroke-width="3.6" stroke-linecap="round"/></g><circle cx="11.5" cy="15.2" r="2.7" fill="#fff"/><path d="M8.8 18.9l-1 1.6M11.5 19.6v1.6M14.2 18.9l1 1.6" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.3" stroke-linecap="round"/></g></svg>';
+var IC={dl:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',image:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 9"/></svg>',spark:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 15v5M16.5 17.5h5"/></svg>',edit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',send:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M10 13l11-10"/></svg>',code:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/></svg>',copy:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>',ref:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>'};
+var tt;function toast(s){var e=$('toast');e.textContent=s;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},3500)}
+function show(v){clearPend();if(imgMode)setImg(false);listv.classList.toggle('on',v==='listv');chatv.classList.toggle('on',v==='chatv')}
+function bubble(m){var d=document.createElement('div');d.className='msg '+(m.role==='user'?'out':'in');var t=document.createElement('span');t.textContent=m.content;if(m.role==='assistant'&&m.content&&!m.project)md(t,m.content);var tm=document.createElement('span');tm.className='time';tm.textContent=hm(m.t);if(m.project)projBody(t,m);if(m.img){var pi=document.createElement('img');pi.className='ph';pi.src=m.img;d.appendChild(pi)}if(m.pic)d.appendChild(picNode(m));d.appendChild(t);d.appendChild(tm);if(m.role==='assistant'&&m.content)d.appendChild(actRow(m));return d}
+function setStatus(){var c=cur(),b=c&&c.busy;stEl.textContent=b?'печатает…':(c&&c.closed?'чат закрыт':(c&&c.teacher?'режим учителя':(c&&tutorLang(c)?'репетитор: '+LANGS[tutorLang(c)][0]:'в сети')))+((c&&c.title&&c.title!=='Новый чат')?' · '+c.title:'');var ft=document.querySelector('footer'),cl=$('cl');if(ft)ft.style.display=(c&&c.closed)?'none':'';if(cl)cl.style.display=(c&&c.closed)?'flex':'none';var at=$('att');if(at)at.style.display=(c&&!c.closed)?'flex':'none';var ar=$('arc');if(ar)ar.style.display=(c&&tutorLang(c)&&!c.closed)?'flex':'none';stEl.className='status'+(b?' typing':'')}
+function renderChat(){
+  var c=cur();if(!c)return;
+  $('hn').innerHTML='<span class="wm" style="font-size:19px">Chat<b>JAMI</b></span>';$('hava').innerHTML=LOGO;
+  feed.innerHTML='';var last='';
+  c.msgs.forEach(function(m){var k=dayKey(m.t);if(k!==last){last=k;var ch=document.createElement('div');ch.className='chip';ch.textContent=dayLabel(m.t);feed.appendChild(ch)}feed.appendChild(bubble(m))});
+  if(c.busy&&c.live){var d=bubble({role:'assistant',content:'',t:Date.now()});var sp=d.firstChild;if(c.live.part)md(sp,c.live.part);else sp.innerHTML='<span class="dots"><span></span><span></span><span></span></span>';c.live.t=sp;feed.appendChild(d)}
+  setStatus();feed.scrollTop=feed.scrollHeight}
+function renderList(){
+  var rows=$('rows');rows.innerHTML='';var tb=$('tb');if(tb){tb.style.display=S.trash.length?'':'none';$('tn').textContent=S.trash.length}
+  var q=(($('sq')||{}).value||'').trim().toLowerCase(),snip={};
+  var arr=S.chats.slice().sort(function(a,b){return (b.pinned?1:0)-(a.pinned?1:0)||b.updated-a.updated});
+  if(q)arr=arr.filter(function(c){if(String(c.title).toLowerCase().indexOf(q)>=0)return true;
+    for(var i=c.msgs.length-1;i>=0;i--){var t=String(c.msgs[i].content||'').replace(/\s+/g,' '),k=t.toLowerCase().indexOf(q);
+      if(k>=0){snip[c.id]=(k>30?'…':'')+t.slice(Math.max(0,k-30),k+q.length+40);return true}}return false});
+  if(!arr.length){var e=document.createElement('div');e.className='empty';e.textContent=q?'Ничего не найдено':'Чатов пока нет. Нажми кнопку нового чата вверху, чтобы начать.';rows.appendChild(e);return}
+  arr.forEach(function(c){
+    var r=document.createElement('div');r.className='row';
+    r.innerHTML='<div class="ava"></div><div class="rt"><div class="rn"></div><div class="rp"></div></div><div class="rr"><div class="rtm"></div><button class="rm" aria-label="Меню">⋮</button></div>';
+    var a=r.querySelector('.ava');a.innerHTML=LOGO;
+    var rn=r.querySelector('.rn');if(c.pinned)rn.insertAdjacentHTML('afterbegin',PINI);rn.appendChild(document.createTextNode(c.title));
+    var lm=c.msgs[c.msgs.length-1];r.querySelector('.rp').textContent=snip[c.id]||(lm?(lm.role==='user'?'Ты: ':'')+lm.content.replace(/\s+/g,' ').slice(0,80):'');
+    r.querySelector('.rtm').textContent=dayKey(c.updated)===new Date().toDateString()?hm(c.updated):new Date(c.updated).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+    r.onclick=function(){open(c.id)};
+    r.querySelector('.rm').onclick=function(e){e.stopPropagation();chatMenu(c)};
+    rows.appendChild(r)})}
+var PINI='<svg class="pn" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 3.5l6 6-2 1-3 3 .5 4-1.5 1.5-4-4-5 5-1-1 5-5-4-4L8 8.5l4 .5 3-3z"/></svg>';
+function togglePin(c){c.pinned=!c.pinned;save();renderList();toast(c.pinned?'Чат закреплён':'Чат откреплён')}
+$('tb').onclick=trashMenu;
+$('sq').oninput=function(){$('sx').style.display=this.value?'':'none';renderList()};
+$('sx').onclick=function(){$('sq').value='';$('sx').style.display='none';renderList();$('sq').focus()};
+function open(id){S.cur=id;save();renderChat();show('chatv')}
+function newChat(){var n=Date.now();var c={id:'c'+n.toString(36)+Math.random().toString(36).slice(2,5),title:'Новый чат',ins:0,updated:n,msgs:[{role:'assistant',content:'Ассаляму алейкум! Чем могу помочь?',t:n}]};S.chats.push(c);save();renderList();open(c.id)}
+function modal(o){return new Promise(function(res){
+  var ov=$('ov'),card=ov.firstElementChild;card.innerHTML='';
+  if(o.title){var h=document.createElement('div');h.className='mt';h.textContent=o.title;card.appendChild(h)}
+  if(o.text){var p=document.createElement('div');p.className='mx';p.textContent=o.text;card.appendChild(p)}
+  var field=null;if(o.input!==undefined){field=document.createElement('input');field.value=o.input;field.maxLength=40;card.appendChild(field)}
+  var row=document.createElement('div');row.className='mb'+(o.col?' col':'');
+  o.buttons.forEach(function(b){if(b.file){var lb=document.createElement('label');lb.className='fl';lb.textContent=b.label;var fi=document.createElement('input');fi.type='file';fi.accept='image/*';fi.onchange=function(){var f=fi.files&&fi.files[0];ov.hidden=true;res({val:'file',file:f})};lb.appendChild(fi);row.appendChild(lb);return}var x=document.createElement('button');x.textContent=b.label;if(b.cls)x.className=b.cls;x.onclick=function(){ov.hidden=true;res({val:b.val,text:field?field.value:''})};row.appendChild(x)});
+  card.appendChild(row);ov.hidden=false;
+  if(field){field.onkeydown=function(e){if(e.key==='Enter')row.lastChild.click()};field.focus();field.select()}
+  ov.onclick=function(e){if(e.target===ov){ov.hidden=true;res({val:null})}}})}
+async function chatMenu(c){
+  var r=await modal({title:c.title,col:1,buttons:[{label:c.pinned?'Открепить чат':'Закрепить чат',val:'pin'},{label:S.mem?'Выключить память о прошлых чатах':'Включить память о прошлых чатах',val:'mem'},{label:'Переименовать',val:'ren'},{label:'Характер ИИ',val:'per'},{label:c.teacher?'Выключить режим учителя':'Включить режим учителя',val:'teach'},{label:tutorLang(c)?'Репетитор языков: '+LANGS[tutorLang(c)][0]:'Репетитор языков',val:'ar'},{label:'Удалить чат',val:'del',cls:'danger'},{label:'Отмена',val:null}]});
+  if(r.val==='pin')togglePin(c);else if(r.val==='mem')toggleMem();else if(r.val==='ren')rename(c);else if(r.val==='per')persona(c);else if(r.val==='teach')toggleTeacher(c);else if(r.val==='ar')tutorMenu(c);else if(r.val==='del')remove(c)}
+var PL=[['','Обычный'],['kind','Добрый'],['fun','Весёлый'],['strict','Строгий']];
+async function persona(c){
+  var cu=c.persona||'';
+  var r=await modal({title:'Характер ИИ',text:'Выбор действует в этом чате.',col:1,buttons:PL.map(function(p){return{label:(p[0]===cu?'✓ ':'')+p[1],val:'p:'+p[0]}}).concat([{label:'Отмена',val:null}])});
+  if(!r.val||r.val.indexOf('p:')!==0)return;
+  c.persona=r.val.slice(2);save();toast('Характер: '+PL.filter(function(p){return p[0]===c.persona})[0][1])}
+async function rename(c){
+  var r=await modal({title:'Переименовать чат',input:c.title,buttons:[{label:'Отмена',val:null},{label:'Сохранить',val:'ok'}]});
+  if(r.val!=='ok')return;var n=r.text.trim();if(!n)return;
+  c.title=n.slice(0,40);c.custom=true;save();renderList();if(S.cur===c.id)renderChat()}
+async function remove(c){
+  var r=await modal({title:'Удалить чат?',text:'«'+c.title+'» переместится в корзину. Его можно восстановить в течение 30 дней.',buttons:[{label:'Отмена',val:null},{label:'Удалить',val:'ok',cls:'danger'}]});
+  if(r.val!=='ok')return;
+  S.trash.unshift(Object.assign({},c,{deleted:Date.now(),busy:false,live:null}));S.trash=S.trash.slice(0,30);
+  S.chats=S.chats.filter(function(x){return x!==c});if(S.cur===c.id)S.cur=null;save();renderList();show('listv')}
+async function reply(c){
+  c.busy=true;var L=c.live={t:null,part:''},k={hit:false},lastUser=c.msgs[c.msgs.length-1].content,err='';
+  renderChat();
+  var msgs=c.msgs.slice(-20).map(function(m){return{role:m.role,content:m.content}});
+  while(msgs.length&&msgs[0].role!=='user')msgs.shift();
+  try{
+    var full=await generate(msgs,c.ins||0,function(x){L.part=clean(x,k);if(L.part&&L.t&&L.t.isConnected){md(L.t,L.part);if(S.cur===c.id)feed.scrollTop=feed.scrollHeight}},c.persona,{teacher:!!c.teacher,image:IMG[c.msgs[c.msgs.length-1].t]||null,calc:calcFor(c),memory:S.mem?memoryText(c):'',lang:tutorLang(c)});
+    L.part=clean(full,k);
+  }catch(e){err=(e&&e.message)||'Не удалось получить ответ. Попробуй ещё раз.'}
+  c.busy=false;c.live=null;
+  if(L.part){c.msgs.push({role:'assistant',content:L.part,t:Date.now(),hit:!!k.hit});if(k.hit){c.ins=(c.ins||0)+1;if(c.ins>=6)c.closed=true}}
+  else if(c.regen){c.msgs.push(c.regen.m);c.ins=c.regen.ins;toast(err||'Пустой ответ, попробуй ещё раз.')}
+  else{c.msgs.pop();if(S.cur===c.id&&!inp.value)inp.value=lastUser;syncBtn();toast(err||'Пустой ответ, попробуй ещё раз.')}
+  c.regen=null;c.updated=Date.now();save();renderList();
+  if(S.cur===c.id&&chatv.classList.contains('on'))renderChat();setStatus()}
+function send(){
+  var c=cur();if(!c)return;var v=inp.value.trim();if(!v&&PEND)v=(c.teacher?'Помоги разобраться с задачей на фото.':'Посмотри на это фото и расскажи, что на нём.');if(!v||c.busy||c.closed)return;
+  if(imgMode){setImg(false);inp.value='';inp.style.height='auto';sendImage(c,v);return}
+  if(projMode){setProj(false);inp.value='';inp.style.height='auto';sendProject(c,v);return}
+  if(c.title==='Новый чат'&&!c.custom){var tt2=titleFrom(v);if(tt2)c.title=tt2}
+  var um={role:'user',content:v,t:Date.now()};if(PEND){um.img=PEND.thumb;IMG[um.t]={type:PEND.type,data:PEND.data};clearPend()}c.msgs.push(um);c.updated=Date.now();save();
+  inp.value='';inp.style.height='auto';syncBtn();renderChat();reply(c)}
+$('send').onclick=send;$('newc').onclick=newChat;
+$('back').onclick=function(){renderList();show('listv')};
+$('menu').onclick=function(){var c=cur();if(c)chatMenu(c)};
+inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+inp.addEventListener('input',function(){inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px'});
+/*PROJ-START*/
+var projMode=false;
+function setProj(on){projMode=on;if(on&&imgMode)setImg(false);$('proj').classList.toggle('on',on);inp.placeholder=on?'Опиши игру или приложение…':'Сообщение'}
+function projBody(t,m){t.textContent='';t.appendChild(document.createTextNode('Проект готов! Ссылка открывается в любом браузере и хранится 30 дней.'));
+  var a=document.createElement('a');a.className='pl';a.href=m.project.url;a.target='_blank';a.rel='noopener';a.textContent='Открыть проект';
+  t.appendChild(document.createElement('br'));t.appendChild(a)}
+async function sendProject(c,v){
+  v=v.slice(0,1500);
+  c.msgs.push({role:'user',content:'Проект: '+v,t:Date.now()});c.updated=Date.now();
+  if(c.title==='Новый чат'&&!c.custom)c.title='Проект: '+(v.length>26?v.slice(0,26)+'…':v);
+  c.busy=true;var L=c.live={t:null,part:'Создаю проект…'};save();renderChat();
+  var t0=Date.now(),chars=0,id=null,err='';
+  var tick=setInterval(function(){var s=Math.round((Date.now()-t0)/1000);
+    L.part='Создаю проект… '+Math.floor(s/60)+':'+('0'+s%60).slice(-2)+(chars?' · написано строк: '+Math.round(chars/40):'');
+    if(L.t&&L.t.isConnected)L.t.textContent=L.part},500);
+  try{
+    var r=await fetch(API+'/project',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:v})});
+    if(!r.ok){var j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'Не удалось создать проект.')}
+    var rd=r.body.getReader(),dc=new TextDecoder(),buf='';
+    for(;;){var x=await rd.read();if(x.done)break;buf+=dc.decode(x.value,{stream:true});var i;
+      while((i=buf.indexOf('\n'))>=0){var ln=buf.slice(0,i).trim();buf=buf.slice(i+1);
+        if(ln.indexOf('data:')===0){try{var ev=JSON.parse(ln.slice(5));
+          if(ev.type==='content_block_delta'&&ev.delta&&ev.delta.text)chars+=ev.delta.text.length;
+          else if(ev.type==='published')id=ev.id;
+          else if(ev.type==='publish_failed')err=ev.message||'Проект не получился. Попробуй описать проще.'}catch(_){}}}}
+  }catch(e){err=(e&&e.name==='TypeError')?'Нет связи с сервером проектов. Проверь адрес прокси.':((e&&e.message)||'Не удалось создать проект.')}
+  clearInterval(tick);c.busy=false;c.live=null;
+  if(id){var u=API+'/p/'+id;c.msgs.push({role:'assistant',content:'Проект готов: '+u,t:Date.now(),project:{url:u},proj:1})}
+  else c.msgs.push({role:'assistant',content:err||'Проект не получился. Попробуй ещё раз.',t:Date.now(),proj:1});
+  c.updated=Date.now();save();renderList();
+  if(S.cur===c.id&&chatv.classList.contains('on'))renderChat();setStatus()}
+$('proj').onclick=function(){setProj(!projMode);if(projMode){toast('Режим проектов: опиши, что создать, и нажми кнопку отправки. Это займёт 1–2 минуты.');inp.focus()}};
+/*PROJ-END*/
+/*IMG-START*/
+var imgMode=false;
+var DEMO_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#f9a8d4"/></linearGradient></defs><rect width="400" height="400" fill="url(#sk)"/><circle cx="270" cy="150" r="48" fill="#fde68a"/><path d="M0 300Q100 220 200 290T400 270V400H0z" fill="#22c55e"/><path d="M0 340Q120 290 240 335T400 320V400H0z" fill="#15803d"/></svg>';
+function setImg(on){imgMode=on;$('imgb').classList.toggle('on',on);inp.placeholder=on?'Опиши, что нарисовать…':'Сообщение'}
+function svgUrl(s){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s)}
+function cleanSvg(t){
+  var m=String(t).match(/<svg[\s\S]*<\/svg>/i);if(!m)return null;var s=m[0];
+  s=s.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi,'').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi,'').replace(/(xlink:)?href\s*=\s*("|')\s*(https?:|\/\/)[^"']*\2/gi,'');
+  if(!/xmlns=/.test(s.slice(0,300)))s=s.replace(/<svg/i,'<svg xmlns="http://www.w3.org/2000/svg"');
+  if(!/viewBox=/i.test(s.slice(0,500)))s=s.replace(/<svg/i,'<svg viewBox="0 0 400 400"');
+  return s}
+async function imgRemote(v){
+  var r=await fetch(API+'/image',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:v})});
+  var j={};try{j=await r.json()}catch(_){}
+  if(!r.ok||!j.image)throw new Error(j.error||'Не удалось нарисовать картинку.');
+  return j.image}
+async function imgSvg(v){
+  var sample=window.claude?await claude.use('sample'):null;
+  if(!sample)throw new Error('Рисование недоступно в этом окне.');
+  var ask='Нарисуй иллюстрацию в виде SVG по запросу: «'+v+'». Требования: выведи ТОЛЬКО код от <svg до </svg>, без пояснений и без markdown. Используй viewBox="0 0 400 400", яркие цвета, простые формы и градиенты, без текста, без скриптов и внешних ссылок. Запретное в исламе и откровенное не рисуй, вместо этого нарисуй безобидный пейзаж.';
+  var r;
+  try{r=await sample([{role:'user',content:ask}],{cache:false})}
+  catch(e){if(e&&e.code==='rate_limited'){toast('Лимит ИИ исчерпан, показан тестовый рисунок');return svgUrl(DEMO_SVG)}
+    throw new Error('Не удалось нарисовать. Попробуй ещё раз.')}
+  var svg=cleanSvg(r&&r.text);if(!svg)throw new Error('Рисунок не получился. Опиши по-другому.');
+  return svgUrl(svg)}
+async function sendImage(c,v){
+  v=v.slice(0,500);
+  c.msgs.push({role:'user',content:'Картинка: '+v,t:Date.now()});c.updated=Date.now();
+  if(c.title==='Новый чат'&&!c.custom)c.title='Картинка: '+(v.length>24?v.slice(0,24)+'…':v);
+  c.busy=true;var L=c.live={t:null,part:'Рисую…'};save();renderChat();
+  var t0=Date.now(),url=null,err='';
+  var tick=setInterval(function(){var s=Math.round((Date.now()-t0)/1000);L.part='Рисую… '+Math.floor(s/60)+':'+('0'+s%60).slice(-2);if(L.t&&L.t.isConnected)L.t.textContent=L.part},500);
+  try{url=(typeof API!=='undefined')?await imgRemote(v):await imgSvg(v)}
+  catch(e){err=(e&&e.name==='TypeError')?'Нет связи с сервером картинок. Проверь адрес прокси.':((e&&e.message)||'Не удалось нарисовать.')}
+  clearInterval(tick);c.busy=false;c.live=null;
+  if(url){var t=Date.now();
+    try{await idbSet('pic_'+t,url);c.msgs.push({role:'assistant',content:'Вот картинка по твоему запросу.',t:t,pic:'pic_'+t,proj:1})}
+    catch(e){c.msgs.push({role:'assistant',content:'Картинку не удалось сохранить в браузере.',t:Date.now(),proj:1})}}
+  else c.msgs.push({role:'assistant',content:err||'Не удалось нарисовать. Попробуй ещё раз.',t:Date.now(),proj:1});
+  c.updated=Date.now();save();renderList();
+  if(S.cur===c.id&&chatv.classList.contains('on'))renderChat();setStatus()}
+function picNode(m){
+  var w=document.createElement('div');w.className='pic',im=document.createElement('img');im.alt='Картинка';w.appendChild(im);
+  function load(cb){idbGet(m.pic).then(function(u){cb(u||null)}).catch(function(){cb(null)})}
+  load(function(u){if(u)im.src=u;else{w.textContent='Картинка не сохранилась'}});
+  var b=document.createElement('button');b.className='dl';b.innerHTML=IC.dl+'Скачать';
+  b.onclick=function(){load(function(u){if(!u)return;var a=document.createElement('a');a.href=u;a.download='chatjami-'+m.t+(u.indexOf('data:image/svg')===0?'.svg':'.jpg');document.body.appendChild(a);a.click();a.remove()})};
+  w.appendChild(b);return w}
+$('imgb').onclick=function(){setImg(!imgMode);if(imgMode){if(typeof setProj==='function'&&projMode)setProj(false);toast('Режим картинок: опиши, что нарисовать, и нажми отправку.');inp.focus()}};
+/*IMG-END*/
+/*STUDIO-START*/
+function openStudio(){var f=$('stf');
+  if(!f.dataset.on){f.dataset.on='1';if(typeof API!=='undefined')f.src='studio.html?api='+encodeURIComponent(API);else f.srcdoc=STUDIO_HTML}
+  $('stu').style.display='block'}
+function closeStudio(){$('stu').style.display='none'}
+window.addEventListener('message',function(e){if(e.data==='studio-close')closeStudio()});
+$('imgb').onclick=openStudio;
+/*STUDIO-END*/
+/*PRAYER-START*/
+var PCITIES=[
+ ['cairo','Каир',30.0444,31.2357,'Africa/Cairo','egypt'],['alex','Александрия',31.2001,29.9187,'Africa/Cairo','egypt'],
+ ['mecca','Мекка',21.4225,39.8262,'Asia/Riyadh','makkah'],['medina','Медина',24.4672,39.6111,'Asia/Riyadh','makkah'],['riyadh','Эр-Рияд',24.7136,46.6753,'Asia/Riyadh','makkah'],
+ ['dubai','Дубай',25.2048,55.2708,'Asia/Dubai','mwl'],['istanbul','Стамбул',41.0082,28.9784,'Europe/Istanbul','mwl'],['amman','Амман',31.9454,35.9284,'Asia/Amman','mwl'],
+ ['moscow','Москва',55.7558,37.6173,'Europe/Moscow','mwl'],['spb','Санкт-Петербург',59.9343,30.3351,'Europe/Moscow','mwl'],['kazan','Казань',55.7887,49.1221,'Europe/Moscow','mwl'],
+ ['nn','Нижний Новгород',56.2965,43.9361,'Europe/Moscow','mwl'],['ufa','Уфа',54.7388,55.9721,'Asia/Yekaterinburg','mwl'],['ekb','Екатеринбург',56.8389,60.6057,'Asia/Yekaterinburg','mwl'],
+ ['nsk','Новосибирск',55.0084,82.9357,'Asia/Novosibirsk','mwl'],['grozny','Грозный',43.3181,45.6949,'Europe/Moscow','mwl'],['mkala','Махачкала',42.9849,47.5047,'Europe/Moscow','mwl'],
+ ['nalchik','Нальчик',43.4981,43.6189,'Europe/Moscow','mwl'],['tashkent','Ташкент',41.2995,69.2401,'Asia/Tashkent','mwl'],['almaty','Алматы',43.222,76.8512,'Asia/Almaty','mwl'],
+ ['bishkek','Бишкек',42.8746,74.5698,'Asia/Bishkek','mwl'],['dushanbe','Душанбе',38.5598,68.787,'Asia/Dushanbe','mwl'],['baku','Баку',40.4093,49.8671,'Asia/Baku','mwl'],
+ ['minsk','Минск',53.9006,27.559,'Europe/Minsk','mwl'],['berlin','Берлин',52.52,13.405,'Europe/Berlin','mwl'],['london','Лондон',51.5074,-0.1278,'Europe/London','mwl']];
+var PMETH={egypt:{f:19.5,i:17.5,n:'Египетское управление геодезии'},makkah:{f:18.5,m:90,n:'Умм аль-Кура (Мекка)'},mwl:{f:18,i:17,n:'Всемирная исламская лига'}};
+var HMON=['Мухаррам','Сафар','Рабиъ аль-авваль','Рабиъ ас-сани','Джумада аль-уля','Джумада аль-ахира','Раджаб','Шаъбан','Рамадан','Шавваль','Зуль-каъда','Зуль-хиджжа'];
+var PNAMES=[['fajr','Фаджр'],['sunrise','Восход'],['dhuhr','Зухр'],['asr','Аср'],['maghrib','Магриб'],['isha','Иша']];
+function pcity(){try{var v=localStorage.getItem('pcity');if(!v)return null;if(v.charAt(0)==='{')return JSON.parse(v);for(var i=0;i<PCITIES.length;i++)if(PCITIES[i][0]===v){var c=PCITIES[i];return{name:c[1],lat:c[2],lng:c[3],tz:c[4],m:c[5]}}}catch(_){}return null}
+function pparts(tz,ms){var o={};new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'}).formatToParts(new Date(ms)).forEach(function(x){o[x.type]=+x.value});return o}
+function ptzoff(tz,ms){var p=pparts(tz,ms);return(Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-Math.floor(ms/1000)*1000)/3600000}
+function prayerTimes(y,mo,d,lat,lng,tz,method){
+  var R=Math.PI/180,sin=function(x){return Math.sin(x*R)},cos=function(x){return Math.cos(x*R)},tan=function(x){return Math.tan(x*R)};
+  var acos=function(x){return Math.acos(x)/R},atan2=function(a,b){return Math.atan2(a,b)/R},asin=function(x){return Math.asin(x)/R},acot=function(x){return Math.atan(1/x)/R};
+  var fa=function(a){a=a-360*Math.floor(a/360);return a<0?a+360:a},fh=function(a){a=a-24*Math.floor(a/24);return a<0?a+24:a};
+  var Y=mo<=2?y-1:y,M=mo<=2?mo+12:mo,A=Math.floor(Y/100),B=2-A+Math.floor(A/4);
+  var jd=Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+d+B-1524.5-lng/360;
+  function sun(t){var D=jd+t-2451545,g=fa(357.529+0.98560028*D),q=fa(280.459+0.98564736*D),L=fa(q+1.915*sin(g)+0.02*sin(2*g)),e=23.439-0.00000036*D,ra=atan2(cos(e)*sin(L),cos(L))/15;return{decl:asin(sin(e)*sin(L)),eqt:q/15-fh(ra)}}
+  function mid(t){return fh(12-sun(t).eqt)}
+  function ang(a,t){var dc=sun(t).decl;return acos((-sin(a)-sin(dc)*sin(lat))/(cos(dc)*cos(lat)))/15}
+  function asr(t){var dc=sun(t).decl;return ang(-acot(1+tan(Math.abs(lat-dc))),t)}
+  var P=PMETH[method]||PMETH.mwl,t={fajr:5,sunrise:6,dhuhr:12,asr:13,sunset:18,isha:18},T;
+  for(var k=0;k<2;k++){
+    T={fajr:mid(t.fajr/24)-ang(P.f,t.fajr/24),sunrise:mid(t.sunrise/24)-ang(0.833,t.sunrise/24),dhuhr:mid(t.dhuhr/24),asr:mid(t.asr/24)+asr(t.asr/24),sunset:mid(t.sunset/24)+ang(0.833,t.sunset/24)};
+    T.isha=P.m?T.sunset+P.m/60:mid(t.isha/24)+ang(P.i,t.isha/24);t=T}
+  var night=fh(T.sunrise-T.sunset),pf=P.f/60*night;
+  if(isNaN(T.fajr)||fh(T.sunrise-T.fajr)>pf)T.fajr=T.sunrise-pf;
+  if(!P.m){var pi=P.i/60*night;if(isNaN(T.isha)||fh(T.isha-T.sunset)>pi)T.isha=T.sunset+pi}
+  var off=tz-lng/15,o={};
+  o.fajr=T.fajr+off;o.sunrise=T.sunrise+off;o.dhuhr=T.dhuhr+off;o.asr=T.asr+off;o.maghrib=T.sunset+off;o.isha=T.isha+off;
+  return o}
+function pfmt(x){x=fh24(x);var h=Math.floor(x),m=Math.floor((x-h)*60+0.5);if(m===60){h=(h+1)%24;m=0}return('0'+h).slice(-2)+':'+('0'+m).slice(-2)}
+function fh24(a){a=a-24*Math.floor(a/24);return a<0?a+24:a}
+function phijri(y,m,d){var o={};new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{timeZone:'UTC',day:'numeric',month:'numeric',year:'numeric'}).formatToParts(new Date(Date.UTC(y,m-1,d,12))).forEach(function(x){o[x.type]=x.value});return parseInt(o.day,10)+' '+HMON[parseInt(o.month,10)-1]+' '+parseInt(o.year,10)}
+function pday(c,ms,add){var p=pparts(c.tz,ms),dt=new Date(Date.UTC(p.year,p.month-1,p.day+(add||0),12)),y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();
+  var off=ptzoff(c.tz,Date.UTC(y,m-1,d,12)-0);return{y:y,m:m,d:d,t:prayerTimes(y,m,d,c.lat,c.lng,off,c.m)}}
+function pstate(c,ms){
+  ms=ms||Date.now();var p=pparts(c.tz,ms),now=p.hour+p.minute/60+p.second/3600,today=pday(c,ms,0),tm=today.t;
+  var order=['fajr','dhuhr','asr','maghrib','isha'],nxt=null,left=0;
+  for(var i=0;i<order.length;i++){if(tm[order[i]]>now){nxt=order[i];left=tm[order[i]]-now;break}}
+  if(!nxt){nxt='fajr';left=pday(c,ms,1).t.fajr+24-now}
+  var after=now>=tm.maghrib,hd=pday(c,ms,after?1:0);
+  return{times:tm,next:nxt,left:left,hijri:phijri(hd.y,hd.m,hd.d)}}
+function pname(k){for(var i=0;i<PNAMES.length;i++)if(PNAMES[i][0]===k)return PNAMES[i][1]}
+function pleft(h){var m=Math.max(1,Math.round(h*60)),hh=Math.floor(m/60),mm=m%60;return hh?hh+' ч '+mm+' мин':mm+' мин'}
+function prayerCard(){
+  var card=$('pcard');if(!card)return;var c=pcity(),a=$('pn'),b=$('ps');
+  if(!c){a.textContent='Время намаза';b.textContent='Выбери город';return}
+  try{var st=pstate(c);a.textContent=pname(st.next)+' через '+pleft(st.left);b.textContent=c.name+' · '+st.hijri}
+  catch(e){a.textContent='Время намаза';b.textContent='Не удалось посчитать'}}
+async function prayerCities(){
+  var bt=[{label:'Найти город по названию',val:'find'},{label:'Определить автоматически',val:'geo'}];
+  PCITIES.forEach(function(x){bt.push({label:x[1],val:'c:'+x[0]})});bt.push({label:'Отмена',val:null});
+  var r=await modal({title:'Город',text:'Найди любой город мира по названию или выбери из популярных.',col:1,buttons:bt});
+  if(!r.val)return;
+  if(r.val==='find'){citySearchUI('');return}
+  if(r.val==='geo'){
+    if(!navigator.geolocation){toast('Определение места недоступно. Выбери город из списка.');return}
+    toast('Определяю место…');
+    navigator.geolocation.getCurrentPosition(function(g){
+      var tz='UTC';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'}catch(_){}
+      try{localStorage.setItem('pcity',JSON.stringify({name:'Моё место',lat:g.coords.latitude,lng:g.coords.longitude,tz:tz,m:'mwl'}))}catch(_){}
+      prayerCard();toast('Город выбран')},function(){toast('Не удалось определить место. Выбери город из списка.')},{timeout:10000});return}
+  try{localStorage.setItem('pcity',r.val.slice(2))}catch(_){}
+  prayerCard();prayerMenu()}
+async function prayerMenu(){
+  var c=pcity();if(!c){prayerCities();return}
+  var st;try{st=pstate(c)}catch(e){toast('Не удалось посчитать время намаза');return}
+  var lines=PNAMES.map(function(p){return p[1]+' — '+pfmt(st.times[p[0]])});
+  var r=await modal({title:c.name,text:st.hijri+' г. хиджры\n\n'+lines.join('\n')+'\n\nДата по календарю Умм аль-Кура, в разных странах может отличаться на день. Метод расчёта: '+(PMETH[c.m]||PMETH.mwl).n+'. Аср по большинству мазхабов.',col:1,buttons:[{label:'Направление на Мекку (кибла)',val:'qibla'},{label:pon()?'Выключить напоминание':'Включить напоминание',val:'note'},{label:'Сменить город',val:'city'},{label:'Закрыть',val:null}]});
+  if(r.val==='city')prayerCities();else if(r.val==='note')prayerNote();else if(r.val==='qibla')qiblaView(c)}
+$('pcard').onclick=prayerMenu;prayerCard();setInterval(prayerCard,30000);
+/*PRAYER-END*/
+/*PNOTE-START*/
+var pfired={},actx=null;
+function pon(){try{return localStorage.getItem('pnote')==='1'}catch(e){return false}}
+function unlockAudio(){try{var A=window.AudioContext||window.webkitAudioContext;if(!A)return;if(!actx)actx=new A();if(actx.state==='suspended')actx.resume()}catch(e){}}
+['click','touchstart','keydown'].forEach(function(t){addEventListener(t,unlockAudio,{passive:true})});
+function chime(){try{unlockAudio();if(!actx)return;var t0=actx.currentTime;
+  [[523.25,0],[659.25,.35],[783.99,.7]].forEach(function(n){var o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=n[0];
+    g.gain.setValueAtTime(0,t0+n[1]);g.gain.linearRampToValueAtTime(.25,t0+n[1]+.05);g.gain.exponentialRampToValueAtTime(.001,t0+n[1]+1.2);
+    o.connect(g);g.connect(actx.destination);o.start(t0+n[1]);o.stop(t0+n[1]+1.3)})}catch(e){}}
+function pnotice(name,time,city){chime();
+  var old=document.getElementById('pbn');if(old)old.remove();
+  var b=document.createElement('div');b.id='pbn';
+  b.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:90;max-width:92%;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;background:#12141d;color:#fff;border:1.5px solid #6d5dfc;box-shadow:0 10px 34px #0009;font:600 15px/1.3 system-ui,sans-serif';
+  var t=document.createElement('div');t.textContent='Время намаза: '+name+' · '+time+' · '+city;
+  var x=document.createElement('button');x.textContent='Закрыть';x.style.cssText='color:#8b9cff;font:inherit;padding:6px 8px;border-radius:8px;cursor:pointer';x.onclick=function(){b.remove()};
+  b.appendChild(t);b.appendChild(x);document.body.appendChild(b);setTimeout(function(){if(b.parentNode)b.remove()},120000);
+  try{if('Notification' in window&&Notification.permission==='granted')new Notification('Время намаза: '+name,{body:time+' · '+city})}catch(e){}}
+function pcheck(){
+  if(!pon())return;var c=pcity();if(!c)return;var st;try{st=pstate(c)}catch(e){return}
+  var p=pparts(c.tz,Date.now()),now=p.hour+p.minute/60+p.second/3600,day=p.year+'-'+p.month+'-'+p.day;
+  ['fajr','dhuhr','asr','maghrib','isha'].forEach(function(k){var t=st.times[k];
+    if(now>=t&&now<t+3/60){var key=day+k;if(pfired[key])return;
+      try{if(localStorage.getItem('pf')===key)return;localStorage.setItem('pf',key)}catch(e){}
+      pfired[key]=1;pnotice(pname(k),pfmt(t),c.name)}})}
+function prayerNote(){var on=!pon();try{localStorage.setItem('pnote',on?'1':'0')}catch(e){}
+  if(on){try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}unlockAudio();chime();toast('Напоминание включено. Приложение должно быть открыто.')}
+  else toast('Напоминание выключено')}
+setInterval(pcheck,15000);
+/*PNOTE-END*/
+/*CITYS-START*/
+var WC=[["Андорра","Andorra","AD",42.5,1.517,"Europe/Andorra"],["Дубай","Dubai","AE",25.3,55.3,"Asia/Dubai"],["Кабул","Kabul","AF",34.517,69.2,"Asia/Kabul"],["Антигуа","Antigua","AG",17.05,-61.8,"America/Antigua"],["Ангилья","Anguilla","AI",18.2,-63.067,"America/Anguilla"],["Тирана","Tirane","AL",41.333,19.833,"Europe/Tirane"],["Ереван","Yerevan","AM",40.183,44.5,"Asia/Yerevan"],["Луанда","Luanda","AO",-8.8,13.233,"Africa/Luanda"],["Мак-Мердо","McMurdo","AQ",-77.833,166.6,"Antarctica/McMurdo"],["Кейси","Casey","AQ",-66.283,110.517,"Antarctica/Casey"],["Дейвис","Davis","AQ",-68.583,77.967,"Antarctica/Davis"],["Дюмон-д’Юрвиль","Dumont-d’Urville","AQ",-66.667,140.017,"Antarctica/DumontDUrville"],["Моусон","Mawson","AQ",-67.6,62.883,"Antarctica/Mawson"],["Палмер","Palmer","AQ",-64.8,-64.1,"Antarctica/Palmer"],["Ротера","Rothera","AQ",-67.567,-68.133,"Antarctica/Rothera"],["Сёва","Syowa","AQ",-69.006,39.59,"Antarctica/Syowa"],["Тролль","Troll","AQ",-72.011,2.535,"Antarctica/Troll"],["Восток","Vostok","AQ",-78.4,106.9,"Antarctica/Vostok"],["Buenos Aires","Buenos Aires","AR",-34.6,-58.45,"America/Argentina/Buenos_Aires"],["Cordoba","Cordoba","AR",-31.4,-64.183,"America/Argentina/Cordoba"],["Сальта","Salta","AR",-24.783,-65.417,"America/Argentina/Salta"],["Jujuy","Jujuy","AR",-24.183,-65.3,"America/Argentina/Jujuy"],["Тукуман","Tucuman","AR",-26.817,-65.217,"America/Argentina/Tucuman"],["Catamarca","Catamarca","AR",-28.467,-65.783,"America/Argentina/Catamarca"],["Ла-Риоха","La Rioja","AR",-29.433,-66.85,"America/Argentina/La_Rioja"],["Сан-Хуан","San Juan","AR",-31.533,-68.517,"America/Argentina/San_Juan"],["Mendoza","Mendoza","AR",-32.883,-68.817,"America/Argentina/Mendoza"],["Сан-Луис","San Luis","AR",-33.317,-66.35,"America/Argentina/San_Luis"],["Рио-Гальегос","Rio Gallegos","AR",-51.633,-69.217,"America/Argentina/Rio_Gallegos"],["Ушуая","Ushuaia","AR",-54.8,-68.3,"America/Argentina/Ushuaia"],["Паго-Паго","Pago Pago","AS",-14.267,-170.7,"Pacific/Pago_Pago"],["Вена","Vienna","AT",48.217,16.333,"Europe/Vienna"],["Лорд-Хау","Lord Howe Island","AU",-31.55,159.083,"Australia/Lord_Howe"],["Маккуори","Macquarie Island","AU",-54.5,158.95,"Antarctica/Macquarie"],["Хобарт","Hobart","AU",-42.883,147.317,"Australia/Hobart"],["Мельбурн","Melbourne","AU",-37.817,144.967,"Australia/Melbourne"],["Сидней","Sydney","AU",-33.867,151.217,"Australia/Sydney"],["Брокен-Хилл","Broken Hill","AU",-31.95,141.45,"Australia/Broken_Hill"],["Брисбен","Brisbane","AU",-27.467,153.033,"Australia/Brisbane"],["Линдеман","Lindeman","AU",-20.267,149.0,"Australia/Lindeman"],["Аделаида","Adelaide","AU",-34.917,138.583,"Australia/Adelaide"],["Дарвин","Darwin","AU",-12.467,130.833,"Australia/Darwin"],["Перт","Perth","AU",-31.95,115.85,"Australia/Perth"],["Юкла","Eucla","AU",-31.717,128.867,"Australia/Eucla"],["Аруба","Aruba","AW",12.5,-69.967,"America/Aruba"],["Мариехамн","Mariehamn","AX",60.1,19.95,"Europe/Mariehamn"],["Баку","Baku","AZ",40.383,49.85,"Asia/Baku"],["Сараево","Sarajevo","BA",43.867,18.417,"Europe/Sarajevo"],["Барбадос","Barbados","BB",13.1,-59.617,"America/Barbados"],["Дакка","Dhaka","BD",23.717,90.417,"Asia/Dhaka"],["Брюссель","Brussels","BE",50.833,4.333,"Europe/Brussels"],["Уагадугу","Ouagadougou","BF",12.367,-1.517,"Africa/Ouagadougou"],["София","Sofia","BG",42.683,23.317,"Europe/Sofia"],["Бахрейн","Bahrain","BH",26.383,50.583,"Asia/Bahrain"],["Бужумбура","Bujumbura","BI",-3.383,29.367,"Africa/Bujumbura"],["Порто-Ново","Porto-Novo","BJ",6.483,2.617,"Africa/Porto-Novo"],["Сен-Бартелеми","St. Barthélemy","BL",17.883,-62.85,"America/St_Barthelemy"],["Бермудские о-ва","Bermuda","BM",32.283,-64.767,"Atlantic/Bermuda"],["Бруней","Brunei","BN",4.933,114.917,"Asia/Brunei"],["Ла-Пас","La Paz","BO",-16.5,-68.15,"America/La_Paz"],["Кралендейк","Kralendijk","BQ",12.151,-68.277,"America/Kralendijk"],["Норонья","Fernando de Noronha","BR",-3.85,-32.417,"America/Noronha"],["Белен","Belem","BR",-1.45,-48.483,"America/Belem"],["Форталеза","Fortaleza","BR",-3.717,-38.5,"America/Fortaleza"],["Ресифи","Recife","BR",-8.05,-34.9,"America/Recife"],["Арагуаина","Araguaina","BR",-7.2,-48.2,"America/Araguaina"],["Масейо","Maceio","BR",-9.667,-35.717,"America/Maceio"],["Баия","Bahia","BR",-12.983,-38.517,"America/Bahia"],["Сан-Паулу","Sao Paulo","BR",-23.533,-46.617,"America/Sao_Paulo"],["Кампу-Гранди","Campo Grande","BR",-20.45,-54.617,"America/Campo_Grande"],["Куяба","Cuiaba","BR",-15.583,-56.083,"America/Cuiaba"],["Сантарен","Santarem","BR",-2.433,-54.867,"America/Santarem"],["Порту-Велью","Porto Velho","BR",-8.767,-63.9,"America/Porto_Velho"],["Боа-Виста","Boa Vista","BR",2.817,-60.667,"America/Boa_Vista"],["Манаус","Manaus","BR",-3.133,-60.017,"America/Manaus"],["Эйрунепе","Eirunepe","BR",-6.667,-69.867,"America/Eirunepe"],["Риу-Бранку","Rio Branco","BR",-9.967,-67.8,"America/Rio_Branco"],["Нассау","Nassau","BS",25.083,-77.35,"America/Nassau"],["Тхимпху","Thimphu","BT",27.467,89.65,"Asia/Thimphu"],["Габороне","Gaborone","BW",-24.65,25.917,"Africa/Gaborone"],["Минск","Minsk","BY",53.9,27.567,"Europe/Minsk"],["Белиз","Belize","BZ",17.5,-88.2,"America/Belize"],["Сент-Джонс","St. John’s","CA",47.567,-52.717,"America/St_Johns"],["Галифакс","Halifax","CA",44.65,-63.6,"America/Halifax"],["Глейс-Бей","Glace Bay","CA",46.2,-59.95,"America/Glace_Bay"],["Монктон","Moncton","CA",46.1,-64.783,"America/Moncton"],["Гус-Бей","Goose Bay","CA",53.333,-60.417,"America/Goose_Bay"],["Бланк-Саблон","Blanc-Sablon","CA",51.417,-57.117,"America/Blanc-Sablon"],["Торонто","Toronto","CA",43.65,-79.383,"America/Toronto"],["Икалуит","Iqaluit","CA",63.733,-68.467,"America/Iqaluit"],["Atikokan","Atikokan","CA",48.759,-91.622,"America/Atikokan"],["Виннипег","Winnipeg","CA",49.883,-97.15,"America/Winnipeg"],["Резольют","Resolute","CA",74.696,-94.829,"America/Resolute"],["Ранкин-Инлет","Rankin Inlet","CA",62.817,-92.083,"America/Rankin_Inlet"],["Реджайна","Regina","CA",50.4,-104.65,"America/Regina"],["Свифт-Керрент","Swift Current","CA",50.283,-107.833,"America/Swift_Current"],["Эдмонтон","Edmonton","CA",53.55,-113.467,"America/Edmonton"],["Кеймбридж-Бей","Cambridge Bay","CA",69.114,-105.053,"America/Cambridge_Bay"],["Инувик","Inuvik","CA",68.35,-133.717,"America/Inuvik"],["Крестон","Creston","CA",49.1,-116.517,"America/Creston"],["Доусон-Крик","Dawson Creek","CA",55.767,-120.233,"America/Dawson_Creek"],["Форт Нельсон","Fort Nelson","CA",58.8,-122.7,"America/Fort_Nelson"],["Уайтхорс","Whitehorse","CA",60.717,-135.05,"America/Whitehorse"],["Доусон","Dawson","CA",64.067,-139.417,"America/Dawson"],["Ванкувер","Vancouver","CA",49.267,-123.117,"America/Vancouver"],["Кокосовые о-ва","Cocos Islands","CC",-12.167,96.917,"Indian/Cocos"],["Киншаса","Kinshasa","CD",-4.3,15.3,"Africa/Kinshasa"],["Лубумбаши","Lubumbashi","CD",-11.667,27.467,"Africa/Lubumbashi"],["Банги","Bangui","CF",4.367,18.583,"Africa/Bangui"],["Браззавиль","Brazzaville","CG",-4.267,15.283,"Africa/Brazzaville"],["Цюрих","Zurich","CH",47.383,8.533,"Europe/Zurich"],["Абиджан","Abidjan","CI",5.317,-4.033,"Africa/Abidjan"],["Раротонга","Rarotonga","CK",-21.233,-159.767,"Pacific/Rarotonga"],["Сантьяго","Santiago","CL",-33.45,-70.667,"America/Santiago"],["Coyhaique","Coyhaique","CL",-45.567,-72.067,"America/Coyhaique"],["Пунта-Аренас","Punta Arenas","CL",-53.15,-70.917,"America/Punta_Arenas"],["о-в Пасхи","Easter Island","CL",-27.15,-109.433,"Pacific/Easter"],["Дуала","Douala","CM",4.05,9.7,"Africa/Douala"],["Шанхай","Shanghai","CN",31.233,121.467,"Asia/Shanghai"],["Урумчи","Urumqi","CN",43.8,87.583,"Asia/Urumqi"],["Богота","Bogota","CO",4.6,-74.083,"America/Bogota"],["Коста-Рика","Costa Rica","CR",9.933,-84.083,"America/Costa_Rica"],["Гавана","Havana","CU",23.133,-82.367,"America/Havana"],["Кабо-Верде","Cape Verde","CV",14.917,-23.517,"Atlantic/Cape_Verde"],["Кюрасао","Curaçao","CW",12.183,-69.0,"America/Curacao"],["о-в Рождества","Christmas Island","CX",-10.417,105.717,"Indian/Christmas"],["Никосия","Nicosia","CY",35.167,33.367,"Asia/Nicosia"],["Фамагуста","Famagusta","CY",35.117,33.95,"Asia/Famagusta"],["Прага","Prague","CZ",50.083,14.433,"Europe/Prague"],["Берлин","Berlin","DE",52.5,13.367,"Europe/Berlin"],["Бюзинген-на-Верхнем-Рейне","Busingen","DE",47.7,8.683,"Europe/Busingen"],["Джибути","Djibouti","DJ",11.6,43.15,"Africa/Djibouti"],["Копенгаген","Copenhagen","DK",55.667,12.583,"Europe/Copenhagen"],["Доминика","Dominica","DM",15.3,-61.4,"America/Dominica"],["Санто-Доминго","Santo Domingo","DO",18.467,-69.9,"America/Santo_Domingo"],["Алжир","Algiers","DZ",36.783,3.05,"Africa/Algiers"],["Гуаякиль","Guayaquil","EC",-2.167,-79.833,"America/Guayaquil"],["Галапагосские о-ва","Galapagos","EC",-0.9,-89.6,"Pacific/Galapagos"],["Таллин","Tallinn","EE",59.417,24.75,"Europe/Tallinn"],["Каир","Cairo","EG",30.05,31.25,"Africa/Cairo"],["Эль-Аюн","El Aaiun","EH",27.15,-13.2,"Africa/El_Aaiun"],["Asmara","Asmara","ER",15.333,38.883,"Africa/Asmara"],["Мадрид","Madrid","ES",40.4,-3.683,"Europe/Madrid"],["Сеута","Ceuta","ES",35.883,-5.317,"Africa/Ceuta"],["Канарские о-ва","Canary","ES",28.1,-15.4,"Atlantic/Canary"],["Аддис-Абеба","Addis Ababa","ET",9.033,38.7,"Africa/Addis_Ababa"],["Хельсинки","Helsinki","FI",60.167,24.967,"Europe/Helsinki"],["Фиджи","Fiji","FJ",-18.133,178.417,"Pacific/Fiji"],["Стэнли","Stanley","FK",-51.7,-57.85,"Atlantic/Stanley"],["Chuuk","Chuuk","FM",7.417,151.783,"Pacific/Chuuk"],["Pohnpei","Pohnpei","FM",6.967,158.217,"Pacific/Pohnpei"],["Косрае","Kosrae","FM",5.317,162.983,"Pacific/Kosrae"],["Faroe","Faroe","FO",62.017,-6.767,"Atlantic/Faroe"],["Париж","Paris","FR",48.867,2.333,"Europe/Paris"],["Либревиль","Libreville","GA",0.383,9.45,"Africa/Libreville"],["Лондон","London","GB",51.508,-0.125,"Europe/London"],["Гренада","Grenada","GD",12.05,-61.75,"America/Grenada"],["Тбилиси","Tbilisi","GE",41.717,44.817,"Asia/Tbilisi"],["Кайенна","Cayenne","GF",4.933,-52.333,"America/Cayenne"],["Гернси","Guernsey","GG",49.455,-2.536,"Europe/Guernsey"],["Аккра","Accra","GH",5.55,-0.217,"Africa/Accra"],["Гибралтар","Gibraltar","GI",36.133,-5.35,"Europe/Gibraltar"],["Nuuk","Nuuk","GL",64.183,-51.733,"America/Nuuk"],["Денмарксхавн","Danmarkshavn","GL",76.767,-18.667,"America/Danmarkshavn"],["Скорсбисунн","Ittoqqortoormiit","GL",70.483,-21.967,"America/Scoresbysund"],["Туле","Thule","GL",76.567,-68.783,"America/Thule"],["Банжул","Banjul","GM",13.467,-16.65,"Africa/Banjul"],["Конакри","Conakry","GN",9.517,-13.717,"Africa/Conakry"],["Гваделупа","Guadeloupe","GP",16.233,-61.533,"America/Guadeloupe"],["Малабо","Malabo","GQ",3.75,8.783,"Africa/Malabo"],["Афины","Athens","GR",37.967,23.717,"Europe/Athens"],["Южная Георгия","South Georgia","GS",-54.267,-36.533,"Atlantic/South_Georgia"],["Гватемала","Guatemala","GT",14.633,-90.517,"America/Guatemala"],["Гуам","Guam","GU",13.467,144.75,"Pacific/Guam"],["Бисау","Bissau","GW",11.85,-15.583,"Africa/Bissau"],["Гайана","Guyana","GY",6.8,-58.167,"America/Guyana"],["Гонконг","Hong Kong","HK",22.283,114.15,"Asia/Hong_Kong"],["Тегусигальпа","Tegucigalpa","HN",14.1,-87.217,"America/Tegucigalpa"],["Загреб","Zagreb","HR",45.8,15.967,"Europe/Zagreb"],["Порт-о-Пренс","Port-au-Prince","HT",18.533,-72.333,"America/Port-au-Prince"],["Будапешт","Budapest","HU",47.5,19.083,"Europe/Budapest"],["Джакарта","Jakarta","ID",-6.167,106.8,"Asia/Jakarta"],["Понтианак","Pontianak","ID",-0.033,109.333,"Asia/Pontianak"],["Макасар","Makassar","ID",-5.117,119.4,"Asia/Makassar"],["Джаяпура","Jayapura","ID",-2.533,140.7,"Asia/Jayapura"],["Дублин","Dublin","IE",53.333,-6.25,"Europe/Dublin"],["Иерусалим","Jerusalem","IL",31.781,35.224,"Asia/Jerusalem"],["о-в Мэн","Isle of Man","IM",54.15,-4.467,"Europe/Isle_of_Man"],["Kolkata","Kolkata","IN",22.533,88.367,"Asia/Kolkata"],["Чагос","Chagos","IO",-7.333,72.417,"Indian/Chagos"],["Багдад","Baghdad","IQ",33.35,44.417,"Asia/Baghdad"],["Тегеран","Tehran","IR",35.667,51.433,"Asia/Tehran"],["Рейкьявик","Reykjavik","IS",64.15,-21.85,"Atlantic/Reykjavik"],["Рим","Rome","IT",41.9,12.483,"Europe/Rome"],["Джерси","Jersey","JE",49.184,-2.107,"Europe/Jersey"],["Ямайка","Jamaica","JM",17.968,-76.793,"America/Jamaica"],["Амман","Amman","JO",31.95,35.933,"Asia/Amman"],["Токио","Tokyo","JP",35.654,139.745,"Asia/Tokyo"],["Найроби","Nairobi","KE",-1.283,36.817,"Africa/Nairobi"],["Бишкек","Bishkek","KG",42.9,74.6,"Asia/Bishkek"],["Пномпень","Phnom Penh","KH",11.55,104.917,"Asia/Phnom_Penh"],["Тарава","Tarawa","KI",1.417,173.0,"Pacific/Tarawa"],["Кантон","Kanton","KI",-2.783,-171.717,"Pacific/Kanton"],["Киритимати","Kiritimati","KI",1.867,-157.333,"Pacific/Kiritimati"],["Коморы","Comoro","KM",-11.683,43.267,"Indian/Comoro"],["Сент-Китс","St. Kitts","KN",17.3,-62.717,"America/St_Kitts"],["Пхеньян","Pyongyang","KP",39.017,125.75,"Asia/Pyongyang"],["Сеул","Seoul","KR",37.55,126.967,"Asia/Seoul"],["Кувейт","Kuwait","KW",29.333,47.983,"Asia/Kuwait"],["Острова Кайман","Cayman","KY",19.3,-81.383,"America/Cayman"],["Алматы","Almaty","KZ",43.25,76.95,"Asia/Almaty"],["Кызылорда","Qyzylorda","KZ",44.8,65.467,"Asia/Qyzylorda"],["Костанай","Kostanay","KZ",53.2,63.617,"Asia/Qostanay"],["Актобе","Aqtobe","KZ",50.283,57.167,"Asia/Aqtobe"],["Актау","Aqtau","KZ",44.517,50.267,"Asia/Aqtau"],["Атырау","Atyrau","KZ",47.117,51.933,"Asia/Atyrau"],["Уральск","Oral","KZ",51.217,51.35,"Asia/Oral"],["Вьентьян","Vientiane","LA",17.967,102.6,"Asia/Vientiane"],["Бейрут","Beirut","LB",33.883,35.5,"Asia/Beirut"],["Сент-Люсия","St. Lucia","LC",14.017,-61.0,"America/St_Lucia"],["Вадуц","Vaduz","LI",47.15,9.517,"Europe/Vaduz"],["Коломбо","Colombo","LK",6.933,79.85,"Asia/Colombo"],["Монровия","Monrovia","LR",6.3,-10.783,"Africa/Monrovia"],["Масеру","Maseru","LS",-29.467,27.5,"Africa/Maseru"],["Вильнюс","Vilnius","LT",54.683,25.317,"Europe/Vilnius"],["Люксембург","Luxembourg","LU",49.6,6.15,"Europe/Luxembourg"],["Рига","Riga","LV",56.95,24.1,"Europe/Riga"],["Триполи","Tripoli","LY",32.9,13.183,"Africa/Tripoli"],["Касабланка","Casablanca","MA",33.65,-7.583,"Africa/Casablanca"],["Монако","Monaco","MC",43.7,7.383,"Europe/Monaco"],["Кишинев","Chisinau","MD",47.0,28.833,"Europe/Chisinau"],["Подгорица","Podgorica","ME",42.433,19.267,"Europe/Podgorica"],["Мариго","Marigot","MF",18.067,-63.083,"America/Marigot"],["Антананариву","Antananarivo","MG",-18.917,47.517,"Indian/Antananarivo"],["Маджуро","Majuro","MH",7.15,171.2,"Pacific/Majuro"],["Кваджалейн","Kwajalein","MH",9.083,167.333,"Pacific/Kwajalein"],["Скопье","Skopje","MK",41.983,21.433,"Europe/Skopje"],["Бамако","Bamako","ML",12.65,-8.0,"Africa/Bamako"],["Yangon","Yangon","MM",16.783,96.167,"Asia/Yangon"],["Улан-Батор","Ulaanbaatar","MN",47.917,106.883,"Asia/Ulaanbaatar"],["Ховд","Hovd","MN",48.017,91.65,"Asia/Hovd"],["Макао","Macao","MO",22.197,113.542,"Asia/Macau"],["Сайпан","Saipan","MP",15.2,145.75,"Pacific/Saipan"],["Мартиника","Martinique","MQ",14.6,-61.083,"America/Martinique"],["Нуакшот","Nouakchott","MR",18.1,-15.95,"Africa/Nouakchott"],["Монтсеррат","Montserrat","MS",16.717,-62.217,"America/Montserrat"],["Мальта","Malta","MT",35.9,14.517,"Europe/Malta"],["Маврикий","Mauritius","MU",-20.167,57.5,"Indian/Mauritius"],["Мальдивы","Maldives","MV",4.167,73.5,"Indian/Maldives"],["Блантайр","Blantyre","MW",-15.783,35.0,"Africa/Blantyre"],["Мехико","Mexico City","MX",19.4,-99.15,"America/Mexico_City"],["Канкун","Cancún","MX",21.083,-86.767,"America/Cancun"],["Мерида","Mérida","MX",20.967,-89.617,"America/Merida"],["Монтеррей","Monterrey","MX",25.667,-100.317,"America/Monterrey"],["Матаморос","Matamoros","MX",25.833,-97.5,"America/Matamoros"],["Чиуауа","Chihuahua","MX",28.633,-106.083,"America/Chihuahua"],["Сьюдад-Хуарес","Ciudad Juárez","MX",31.733,-106.483,"America/Ciudad_Juarez"],["Охинага","Ojinaga","MX",29.567,-104.417,"America/Ojinaga"],["Масатлан","Mazatlan","MX",23.217,-106.417,"America/Mazatlan"],["Баия-де-Бандерас","Bahía de Banderas","MX",20.8,-105.25,"America/Bahia_Banderas"],["Эрмосильо","Hermosillo","MX",29.067,-110.967,"America/Hermosillo"],["Тихуана","Tijuana","MX",32.533,-117.017,"America/Tijuana"],["Куала-Лумпур","Kuala Lumpur","MY",3.167,101.7,"Asia/Kuala_Lumpur"],["Кучинг","Kuching","MY",1.55,110.333,"Asia/Kuching"],["Мапуту","Maputo","MZ",-25.967,32.583,"Africa/Maputo"],["Виндхук","Windhoek","NA",-22.567,17.1,"Africa/Windhoek"],["Нумеа","Noumea","NC",-22.267,166.45,"Pacific/Noumea"],["Ниамей","Niamey","NE",13.517,2.117,"Africa/Niamey"],["Норфолк","Norfolk Island","NF",-29.05,167.967,"Pacific/Norfolk"],["Лагос","Lagos","NG",6.45,3.4,"Africa/Lagos"],["Манагуа","Managua","NI",12.15,-86.283,"America/Managua"],["Амстердам","Amsterdam","NL",52.367,4.9,"Europe/Amsterdam"],["Осло","Oslo","NO",59.917,10.75,"Europe/Oslo"],["Kathmandu","Kathmandu","NP",27.717,85.317,"Asia/Kathmandu"],["Науру","Nauru","NR",-0.517,166.917,"Pacific/Nauru"],["Ниуэ","Niue","NU",-19.017,-169.917,"Pacific/Niue"],["Окленд","Auckland","NZ",-36.867,174.767,"Pacific/Auckland"],["Чатем","Chatham","NZ",-43.95,-176.55,"Pacific/Chatham"],["Маскат","Muscat","OM",23.6,58.583,"Asia/Muscat"],["Панама","Panama","PA",8.967,-79.533,"America/Panama"],["Лима","Lima","PE",-12.05,-77.05,"America/Lima"],["Таити","Tahiti","PF",-17.533,-149.567,"Pacific/Tahiti"],["Маркизские о-ва","Marquesas","PF",-9.0,-139.5,"Pacific/Marquesas"],["о-ва Гамбье","Gambier","PF",-23.133,-134.95,"Pacific/Gambier"],["Порт-Морсби","Port Moresby","PG",-9.5,147.167,"Pacific/Port_Moresby"],["Бугенвиль","Bougainville","PG",-6.217,155.567,"Pacific/Bougainville"],["Манила","Manila","PH",14.587,120.968,"Asia/Manila"],["Карачи","Karachi","PK",24.867,67.05,"Asia/Karachi"],["Варшава","Warsaw","PL",52.25,21.0,"Europe/Warsaw"],["Микелон","Miquelon","PM",47.05,-56.333,"America/Miquelon"],["Питкэрн","Pitcairn","PN",-25.067,-130.083,"Pacific/Pitcairn"],["Пуэрто-Рико","Puerto Rico","PR",18.468,-66.106,"America/Puerto_Rico"],["Газа","Gaza","PS",31.5,34.467,"Asia/Gaza"],["Хеврон","Hebron","PS",31.533,35.095,"Asia/Hebron"],["Лиссабон","Lisbon","PT",38.717,-9.133,"Europe/Lisbon"],["Мадейра","Madeira","PT",32.633,-16.9,"Atlantic/Madeira"],["Азорские о-ва","Azores","PT",37.733,-25.667,"Atlantic/Azores"],["Палау","Palau","PW",7.333,134.483,"Pacific/Palau"],["Асунсьон","Asunción","PY",-25.267,-57.667,"America/Asuncion"],["Катар","Qatar","QA",25.283,51.533,"Asia/Qatar"],["Реюньон","Réunion","RE",-20.867,55.467,"Indian/Reunion"],["Бухарест","Bucharest","RO",44.433,26.1,"Europe/Bucharest"],["Белград","Belgrade","RS",44.833,20.5,"Europe/Belgrade"],["Калининград","Kaliningrad","RU",54.717,20.5,"Europe/Kaliningrad"],["Москва","Moscow","RU",55.756,37.618,"Europe/Moscow"],["Симферополь","Simferopol","UA",44.95,34.1,"Europe/Simferopol"],["Киров","Kirov","RU",58.6,49.65,"Europe/Kirov"],["Волгоград","Volgograd","RU",48.733,44.417,"Europe/Volgograd"],["Астрахань","Astrakhan","RU",46.35,48.05,"Europe/Astrakhan"],["Саратов","Saratov","RU",51.567,46.033,"Europe/Saratov"],["Ульяновск","Ulyanovsk","RU",54.333,48.4,"Europe/Ulyanovsk"],["Самара","Samara","RU",53.2,50.15,"Europe/Samara"],["Екатеринбург","Yekaterinburg","RU",56.85,60.6,"Asia/Yekaterinburg"],["Омск","Omsk","RU",55.0,73.4,"Asia/Omsk"],["Новосибирск","Novosibirsk","RU",55.033,82.917,"Asia/Novosibirsk"],["Барнаул","Barnaul","RU",53.367,83.75,"Asia/Barnaul"],["Томск","Tomsk","RU",56.5,84.967,"Asia/Tomsk"],["Новокузнецк","Novokuznetsk","RU",53.75,87.117,"Asia/Novokuznetsk"],["Красноярск","Krasnoyarsk","RU",56.017,92.833,"Asia/Krasnoyarsk"],["Иркутск","Irkutsk","RU",52.267,104.333,"Asia/Irkutsk"],["Чита","Chita","RU",52.05,113.467,"Asia/Chita"],["Якутск","Yakutsk","RU",62.0,129.667,"Asia/Yakutsk"],["Хандыга","Khandyga","RU",62.656,135.554,"Asia/Khandyga"],["Владивосток","Vladivostok","RU",43.167,131.933,"Asia/Vladivostok"],["Усть-Нера","Ust-Nera","RU",64.56,143.227,"Asia/Ust-Nera"],["Магадан","Magadan","RU",59.567,150.8,"Asia/Magadan"],["о-в Сахалин","Sakhalin","RU",46.967,142.7,"Asia/Sakhalin"],["Среднеколымск","Srednekolymsk","RU",67.467,153.717,"Asia/Srednekolymsk"],["Петропавловск-Камчатский","Kamchatka","RU",53.017,158.65,"Asia/Kamchatka"],["Анадырь","Anadyr","RU",64.75,177.483,"Asia/Anadyr"],["Кигали","Kigali","RW",-1.95,30.067,"Africa/Kigali"],["Эр-Рияд","Riyadh","SA",24.633,46.717,"Asia/Riyadh"],["Гуадалканал","Guadalcanal","SB",-9.533,160.2,"Pacific/Guadalcanal"],["Маэ","Mahe","SC",-4.667,55.467,"Indian/Mahe"],["Хартум","Khartoum","SD",15.6,32.533,"Africa/Khartoum"],["Стокгольм","Stockholm","SE",59.333,18.05,"Europe/Stockholm"],["Сингапур","Singapore","SG",1.283,103.85,"Asia/Singapore"],["о-в Святой Елены","St. Helena","SH",-15.917,-5.7,"Atlantic/St_Helena"],["Любляна","Ljubljana","SI",46.05,14.517,"Europe/Ljubljana"],["Лонгйир","Longyearbyen","SJ",78.0,16.0,"Arctic/Longyearbyen"],["Братислава","Bratislava","SK",48.15,17.117,"Europe/Bratislava"],["Фритаун","Freetown","SL",8.5,-13.25,"Africa/Freetown"],["Сан-Марино","San Marino","SM",43.917,12.467,"Europe/San_Marino"],["Дакар","Dakar","SN",14.667,-17.433,"Africa/Dakar"],["Могадишо","Mogadishu","SO",2.067,45.367,"Africa/Mogadishu"],["Парамарибо","Paramaribo","SR",5.833,-55.167,"America/Paramaribo"],["Джуба","Juba","SS",4.85,31.617,"Africa/Juba"],["Сан-Томе","São Tomé","ST",0.333,6.733,"Africa/Sao_Tome"],["Сальвадор","El Salvador","SV",13.7,-89.2,"America/El_Salvador"],["Лоуэр-Принс-Куотер","Lower Prince’s Quarter","SX",18.051,-63.047,"America/Lower_Princes"],["Дамаск","Damascus","SY",33.5,36.3,"Asia/Damascus"],["Мбабане","Mbabane","SZ",-26.3,31.1,"Africa/Mbabane"],["Гранд-Терк","Grand Turk","TC",21.467,-71.133,"America/Grand_Turk"],["Нджамена","Ndjamena","TD",12.117,15.05,"Africa/Ndjamena"],["Кергелен","Kerguelen","TF",-49.353,70.218,"Indian/Kerguelen"],["Ломе","Lome","TG",6.133,1.217,"Africa/Lome"],["Бангкок","Bangkok","TH",13.75,100.517,"Asia/Bangkok"],["Душанбе","Dushanbe","TJ",38.583,68.8,"Asia/Dushanbe"],["Факаофо","Fakaofo","TK",-9.367,-171.233,"Pacific/Fakaofo"],["Дили","Dili","TL",-8.55,125.583,"Asia/Dili"],["Ашхабад","Ashgabat","TM",37.95,58.383,"Asia/Ashgabat"],["Тунис","Tunis","TN",36.8,10.183,"Africa/Tunis"],["Тонгатапу","Tongatapu","TO",-21.133,-175.2,"Pacific/Tongatapu"],["Стамбул","Istanbul","TR",41.017,28.967,"Europe/Istanbul"],["Порт-оф-Спейн","Port of Spain","TT",10.65,-61.517,"America/Port_of_Spain"],["Фунафути","Funafuti","TV",-8.517,179.217,"Pacific/Funafuti"],["Тайбэй","Taipei","TW",25.05,121.5,"Asia/Taipei"],["Дар-эс-Салам","Dar es Salaam","TZ",-6.8,39.283,"Africa/Dar_es_Salaam"],["Kyiv","Kyiv","UA",50.433,30.517,"Europe/Kyiv"],["Кампала","Kampala","UG",0.317,32.417,"Africa/Kampala"],["о-ва Мидуэй","Midway","UM",28.217,-177.367,"Pacific/Midway"],["Уэйк","Wake Island","UM",19.283,166.617,"Pacific/Wake"],["Нью-Йорк","New York","US",40.714,-74.006,"America/New_York"],["Детройт","Detroit","US",42.331,-83.046,"America/Detroit"],["Louisville","Louisville","US",38.254,-85.759,"America/Kentucky/Louisville"],["Монтиселло, Кентукки","Monticello, Kentucky","US",36.83,-84.849,"America/Kentucky/Monticello"],["Indianapolis","Indianapolis","US",39.768,-86.158,"America/Indiana/Indianapolis"],["Винсеннес","Vincennes, Indiana","US",38.677,-87.529,"America/Indiana/Vincennes"],["Уинамак","Winamac, Indiana","US",41.051,-86.603,"America/Indiana/Winamac"],["Маренго, Индиана","Marengo, Indiana","US",38.376,-86.345,"America/Indiana/Marengo"],["Питерсберг, Индиана","Petersburg, Indiana","US",38.492,-87.279,"America/Indiana/Petersburg"],["Вевей, Индиана","Vevay, Indiana","US",38.748,-85.067,"America/Indiana/Vevay"],["Чикаго","Chicago","US",41.85,-87.65,"America/Chicago"],["Телл-Сити","Tell City, Indiana","US",37.953,-86.761,"America/Indiana/Tell_City"],["Нокс, Индиана","Knox, Indiana","US",41.296,-86.625,"America/Indiana/Knox"],["Меномини","Menominee","US",45.108,-87.614,"America/Menominee"],["Центр, Северная Дакота","Center, North Dakota","US",47.116,-101.299,"America/North_Dakota/Center"],["Нью-Сейлем, Северная Дакота","New Salem, North Dakota","US",46.845,-101.411,"America/North_Dakota/New_Salem"],["Бойла, Северная Дакота","Beulah, North Dakota","US",47.264,-101.778,"America/North_Dakota/Beulah"],["Денвер","Denver","US",39.739,-104.984,"America/Denver"],["Бойсе","Boise","US",43.614,-116.203,"America/Boise"],["Финикс","Phoenix","US",33.448,-112.073,"America/Phoenix"],["Лос-Анджелес","Los Angeles","US",34.052,-118.243,"America/Los_Angeles"],["Анкоридж","Anchorage","US",61.218,-149.9,"America/Anchorage"],["Джуно","Juneau","US",58.302,-134.42,"America/Juneau"],["Ситка","Sitka","US",57.176,-135.302,"America/Sitka"],["Метлакатла","Metlakatla","US",55.127,-131.576,"America/Metlakatla"],["Якутат","Yakutat","US",59.547,-139.727,"America/Yakutat"],["Ном","Nome","US",64.501,-165.406,"America/Nome"],["Адак","Adak","US",51.88,-176.658,"America/Adak"],["Гонолулу","Honolulu","US",21.307,-157.858,"Pacific/Honolulu"],["Монтевидео","Montevideo","UY",-34.909,-56.213,"America/Montevideo"],["Самарканд","Samarkand","UZ",39.667,66.8,"Asia/Samarkand"],["Ташкент","Tashkent","UZ",41.333,69.3,"Asia/Tashkent"],["Ватикан","Vatican","VA",41.902,12.453,"Europe/Vatican"],["Сент-Винсент","St. Vincent","VC",13.15,-61.233,"America/St_Vincent"],["Каракас","Caracas","VE",10.5,-66.933,"America/Caracas"],["Тортола","Tortola","VG",18.45,-64.617,"America/Tortola"],["Сент-Томас","St. Thomas","VI",18.35,-64.933,"America/St_Thomas"],["Ho Chi Minh","Ho Chi Minh","VN",10.75,106.667,"Asia/Ho_Chi_Minh"],["Эфате","Efate","VU",-17.667,168.417,"Pacific/Efate"],["Уоллис","Wallis","WF",-13.3,-176.167,"Pacific/Wallis"],["Апиа","Apia","WS",-13.833,-171.733,"Pacific/Apia"],["Аден","Aden","YE",12.75,45.2,"Asia/Aden"],["Майотта","Mayotte","YT",-12.783,45.233,"Indian/Mayotte"],["Йоханнесбург","Johannesburg","ZA",-26.25,28.0,"Africa/Johannesburg"],["Лусака","Lusaka","ZM",-15.417,28.283,"Africa/Lusaka"],["Хараре","Harare","ZW",-17.833,31.05,"Africa/Harare"]];
+var CCN={"AD":"Андорра","AE":"ОАЭ","AF":"Афганистан","AG":"Антигуа и Барбуда","AI":"Ангилья","AL":"Албания","AM":"Армения","AO":"Ангола","AQ":"Антарктида","AR":"Аргентина","AS":"Американское Самоа","AT":"Австрия","AU":"Австралия","AW":"Аруба","AX":"Аландские о-ва","AZ":"Азербайджан","BA":"Босния и Герцеговина","BB":"Барбадос","BD":"Бангладеш","BE":"Бельгия","BF":"Буркина-Фасо","BG":"Болгария","BH":"Бахрейн","BI":"Бурунди","BJ":"Бенин","BL":"Сен-Бартелеми","BM":"Бермудские о-ва","BN":"Бруней","BO":"Боливия","BQ":"Бонэйр, Синт-Эстатиус и Саба","BR":"Бразилия","BS":"Багамы","BT":"Бутан","BW":"Ботсвана","BY":"Беларусь","BZ":"Белиз","CA":"Канада","CC":"Кокосовые о-ва","CD":"Конго - Киншаса","CF":"Центрально-Африканская Республика","CG":"Конго - Браззавиль","CH":"Швейцария","CI":"Кот-д’Ивуар","CK":"о-ва Кука","CL":"Чили","CM":"Камерун","CN":"Китай","CO":"Колумбия","CR":"Коста-Рика","CU":"Куба","CV":"Кабо-Верде","CW":"Кюрасао","CX":"о-в Рождества","CY":"Кипр","CZ":"Чехия","DE":"Германия","DJ":"Джибути","DK":"Дания","DM":"Доминика","DO":"Доминиканская Республика","DZ":"Алжир","EC":"Эквадор","EE":"Эстония","EG":"Египет","EH":"Западная Сахара","ER":"Эритрея","ES":"Испания","ET":"Эфиопия","FI":"Финляндия","FJ":"Фиджи","FK":"Фолклендские о-ва","FM":"Федеративные Штаты Микронезии","FO":"Фарерские о-ва","FR":"Франция","GA":"Габон","GB":"Великобритания","GD":"Гренада","GE":"Грузия","GF":"Французская Гвиана","GG":"Гернси","GH":"Гана","GI":"Гибралтар","GL":"Гренландия","GM":"Гамбия","GN":"Гвинея","GP":"Гваделупа","GQ":"Экваториальная Гвинея","GR":"Греция","GS":"Южная Георгия и Южные Сандвичевы о-ва","GT":"Гватемала","GU":"Гуам","GW":"Гвинея-Бисау","GY":"Гайана","HK":"Гонконг (САР)","HN":"Гондурас","HR":"Хорватия","HT":"Гаити","HU":"Венгрия","ID":"Индонезия","IE":"Ирландия","IL":"Израиль","IM":"о-в Мэн","IN":"Индия","IO":"Британская территория в Индийском океане","IQ":"Ирак","IR":"Иран","IS":"Исландия","IT":"Италия","JE":"Джерси","JM":"Ямайка","JO":"Иордания","JP":"Япония","KE":"Кения","KG":"Киргизия","KH":"Камбоджа","KI":"Кирибати","KM":"Коморы","KN":"Сент-Китс и Невис","KP":"КНДР","KR":"Республика Корея","KW":"Кувейт","KY":"о-ва Кайман","KZ":"Казахстан","LA":"Лаос","LB":"Ливан","LC":"Сент-Люсия","LI":"Лихтенштейн","LK":"Шри-Ланка","LR":"Либерия","LS":"Лесото","LT":"Литва","LU":"Люксембург","LV":"Латвия","LY":"Ливия","MA":"Марокко","MC":"Монако","MD":"Молдова","ME":"Черногория","MF":"Сен-Мартен","MG":"Мадагаскар","MH":"Маршалловы о-ва","MK":"Северная Македония","ML":"Мали","MM":"Мьянма (Бирма)","MN":"Монголия","MO":"Макао (САР)","MP":"Северные Марианские о-ва","MQ":"Мартиника","MR":"Мавритания","MS":"Монтсеррат","MT":"Мальта","MU":"Маврикий","MV":"Мальдивы","MW":"Малави","MX":"Мексика","MY":"Малайзия","MZ":"Мозамбик","NA":"Намибия","NC":"Новая Каледония","NE":"Нигер","NF":"о-в Норфолк","NG":"Нигерия","NI":"Никарагуа","NL":"Нидерланды","NO":"Норвегия","NP":"Непал","NR":"Науру","NU":"Ниуэ","NZ":"Новая Зеландия","OM":"Оман","PA":"Панама","PE":"Перу","PF":"Французская Полинезия","PG":"Папуа — Новая Гвинея","PH":"Филиппины","PK":"Пакистан","PL":"Польша","PM":"Сен-Пьер и Микелон","PN":"о-ва Питкэрн","PR":"Пуэрто-Рико","PS":"Палестинские территории","PT":"Португалия","PW":"Палау","PY":"Парагвай","QA":"Катар","RE":"Реюньон","RO":"Румыния","RS":"Сербия","RU":"Россия","RW":"Руанда","SA":"Саудовская Аравия","SB":"Соломоновы о-ва","SC":"Сейшельские о-ва","SD":"Судан","SE":"Швеция","SG":"Сингапур","SH":"о-в Св. Елены","SI":"Словения","SJ":"Шпицберген и Ян-Майен","SK":"Словакия","SL":"Сьерра-Леоне","SM":"Сан-Марино","SN":"Сенегал","SO":"Сомали","SR":"Суринам","SS":"Южный Судан","ST":"Сан-Томе и Принсипи","SV":"Сальвадор","SX":"Синт-Мартен","SY":"Сирия","SZ":"Эсватини","TC":"Тёркс и Кайкос","TD":"Чад","TF":"Французские Южные территории","TG":"Того","TH":"Таиланд","TJ":"Таджикистан","TK":"Токелау","TL":"Восточный Тимор","TM":"Туркменистан","TN":"Тунис","TO":"Тонга","TR":"Турция","TT":"Тринидад и Тобаго","TV":"Тувалу","TW":"Тайвань","TZ":"Танзания","UA":"Украина","UG":"Уганда","UM":"Внешние малые о-ва (США)","US":"Соединенные Штаты","UY":"Уругвай","UZ":"Узбекистан","VA":"Ватикан","VC":"Сент-Винсент и Гренадины","VE":"Венесуэла","VG":"Виргинские о-ва (Великобритания)","VI":"Виргинские о-ва (США)","VN":"Вьетнам","VU":"Вануату","WF":"Уоллис и Футуна","WS":"Самоа","YE":"Йемен","YT":"Майотта","ZA":"Южно-Африканская Республика","ZM":"Замбия","ZW":"Зимбабве"};
+var WX=[["Самара","Samara","RU",53.2,50.15,"Europe/Samara"],["Омск","Omsk","RU",54.99,73.37,"Asia/Omsk"],["Челябинск","Chelyabinsk","RU",55.16,61.4,"Asia/Yekaterinburg"],["Ростов-на-Дону","Rostov-on-Don","RU",47.23,39.72,"Europe/Moscow"],["Краснодар","Krasnodar","RU",45.04,38.98,"Europe/Moscow"],["Пермь","Perm","RU",58.01,56.23,"Asia/Yekaterinburg"],["Волгоград","Volgograd","RU",48.71,44.52,"Europe/Volgograd"],["Воронеж","Voronezh","RU",51.67,39.18,"Europe/Moscow"],["Красноярск","Krasnoyarsk","RU",56.01,92.85,"Asia/Krasnoyarsk"],["Владивосток","Vladivostok","RU",43.12,131.89,"Asia/Vladivostok"],["Тюмень","Tyumen","RU",57.15,65.53,"Asia/Yekaterinburg"],["Саратов","Saratov","RU",51.53,46.03,"Europe/Saratov"],["Ижевск","Izhevsk","RU",56.85,53.2,"Europe/Samara"],["Ульяновск","Ulyanovsk","RU",54.32,48.39,"Europe/Ulyanovsk"],["Хабаровск","Khabarovsk","RU",48.48,135.08,"Asia/Vladivostok"],["Ставрополь","Stavropol","RU",45.04,41.97,"Europe/Moscow"],["Назрань","Nazran","RU",43.23,44.77,"Europe/Moscow"],["Черкесск","Cherkessk","RU",44.22,42.06,"Europe/Moscow"],["Набережные Челны","Naberezhnye Chelny","RU",55.74,52.4,"Europe/Moscow"],["Нижнекамск","Nizhnekamsk","RU",55.64,51.82,"Europe/Moscow"],["Астрахань","Astrakhan","RU",46.35,48.04,"Europe/Astrakhan"],["Оренбург","Orenburg","RU",51.77,55.1,"Asia/Yekaterinburg"],["Иркутск","Irkutsk","RU",52.29,104.3,"Asia/Irkutsk"],["Томск","Tomsk","RU",56.5,84.97,"Asia/Tomsk"],["Барнаул","Barnaul","RU",53.35,83.77,"Asia/Barnaul"],["Сургут","Surgut","RU",61.25,73.4,"Asia/Yekaterinburg"],["Самарканд","Samarkand","UZ",39.65,66.96,"Asia/Samarkand"],["Бухара","Bukhara","UZ",39.77,64.43,"Asia/Samarkand"],["Астана","Astana","KZ",51.17,71.43,"Asia/Almaty"],["Шымкент","Shymkent","KZ",42.32,69.59,"Asia/Almaty"],["Ашхабад","Ashgabat","TM",37.95,58.38,"Asia/Ashgabat"],["Ереван","Yerevan","AM",40.18,44.51,"Asia/Yerevan"],["Тбилиси","Tbilisi","GE",41.72,44.79,"Asia/Tbilisi"],["Джидда","Jeddah","SA",21.54,39.17,"Asia/Riyadh"],["Даммам","Dammam","SA",26.43,50.1,"Asia/Riyadh"],["Кувейт","Kuwait City","KW",29.38,47.99,"Asia/Kuwait"],["Доха","Doha","QA",25.29,51.53,"Asia/Qatar"],["Абу-Даби","Abu Dhabi","AE",24.45,54.38,"Asia/Dubai"],["Маскат","Muscat","OM",23.59,58.41,"Asia/Muscat"],["Манама","Manama","BH",26.23,50.59,"Asia/Bahrain"],["Багдад","Baghdad","IQ",33.31,44.37,"Asia/Baghdad"],["Дамаск","Damascus","SY",33.51,36.29,"Asia/Damascus"],["Бейрут","Beirut","LB",33.89,35.5,"Asia/Beirut"],["Иерусалим","Jerusalem","IL",31.77,35.22,"Asia/Jerusalem"],["Тегеран","Tehran","IR",35.69,51.39,"Asia/Tehran"],["Тунис","Tunis","TN",36.81,10.18,"Africa/Tunis"],["Алжир","Algiers","DZ",36.75,3.06,"Africa/Algiers"],["Касабланка","Casablanca","MA",33.57,-7.59,"Africa/Casablanca"],["Рабат","Rabat","MA",34.02,-6.84,"Africa/Casablanca"],["Триполи","Tripoli","LY",32.89,13.19,"Africa/Tripoli"],["Хартум","Khartoum","SD",15.5,32.56,"Africa/Khartoum"],["Аддис-Абеба","Addis Ababa","ET",9.03,38.74,"Africa/Addis_Ababa"],["Найроби","Nairobi","KE",-1.29,36.82,"Africa/Nairobi"],["Лагос","Lagos","NG",6.52,3.38,"Africa/Lagos"],["Дакар","Dakar","SN",14.72,-17.47,"Africa/Dakar"],["Асуан","Aswan","EG",24.09,32.9,"Africa/Cairo"],["Луксор","Luxor","EG",25.7,32.64,"Africa/Cairo"],["Гиза","Giza","EG",30.01,31.21,"Africa/Cairo"],["Шарм-эш-Шейх","Sharm El Sheikh","EG",27.91,34.33,"Africa/Cairo"],["Хургада","Hurghada","EG",27.26,33.81,"Africa/Cairo"],["Карачи","Karachi","PK",24.86,67.01,"Asia/Karachi"],["Лахор","Lahore","PK",31.55,74.34,"Asia/Karachi"],["Исламабад","Islamabad","PK",33.69,73.06,"Asia/Karachi"],["Дакка","Dhaka","BD",23.81,90.41,"Asia/Dhaka"],["Джакарта","Jakarta","ID",-6.2,106.85,"Asia/Jakarta"],["Куала-Лумпур","Kuala Lumpur","MY",3.14,101.69,"Asia/Kuala_Lumpur"],["Сингапур","Singapore","SG",1.35,103.82,"Asia/Singapore"],["Дели","Delhi","IN",28.61,77.21,"Asia/Kolkata"],["Мумбаи","Mumbai","IN",19.08,72.88,"Asia/Kolkata"],["Анкара","Ankara","TR",39.93,32.86,"Europe/Istanbul"],["Измир","Izmir","TR",38.42,27.14,"Europe/Istanbul"],["Пекин","Beijing","CN",39.9,116.4,"Asia/Shanghai"],["Шанхай","Shanghai","CN",31.23,121.47,"Asia/Shanghai"],["Токио","Tokyo","JP",35.68,139.69,"Asia/Tokyo"],["Сеул","Seoul","KR",37.57,126.98,"Asia/Seoul"],["Париж","Paris","FR",48.86,2.35,"Europe/Paris"],["Мадрид","Madrid","ES",40.42,-3.7,"Europe/Madrid"],["Рим","Rome","IT",41.9,12.5,"Europe/Rome"],["Амстердам","Amsterdam","NL",52.37,4.9,"Europe/Amsterdam"],["Брюссель","Brussels","BE",50.85,4.35,"Europe/Brussels"],["Вена","Vienna","AT",48.21,16.37,"Europe/Vienna"],["Стокгольм","Stockholm","SE",59.33,18.07,"Europe/Stockholm"],["Осло","Oslo","NO",59.91,10.75,"Europe/Oslo"],["Варшава","Warsaw","PL",52.23,21.01,"Europe/Warsaw"],["Прага","Prague","CZ",50.08,14.44,"Europe/Prague"],["Будапешт","Budapest","HU",47.5,19.04,"Europe/Budapest"],["Афины","Athens","GR",37.98,23.73,"Europe/Athens"],["София","Sofia","BG",42.7,23.32,"Europe/Sofia"],["Белград","Belgrade","RS",44.79,20.45,"Europe/Belgrade"],["Сараево","Sarajevo","BA",43.86,18.41,"Europe/Sarajevo"],["Скопье","Skopje","MK",41.99,21.43,"Europe/Skopje"],["Мюнхен","Munich","DE",48.14,11.58,"Europe/Berlin"],["Манчестер","Manchester","GB",53.48,-2.24,"Europe/London"],["Дублин","Dublin","IE",53.35,-6.26,"Europe/Dublin"],["Лиссабон","Lisbon","PT",38.72,-9.14,"Europe/Lisbon"],["Нью-Йорк","New York","US",40.71,-74.01,"America/New_York"],["Лос-Анджелес","Los Angeles","US",34.05,-118.24,"America/Los_Angeles"],["Чикаго","Chicago","US",41.88,-87.63,"America/Chicago"],["Торонто","Toronto","CA",43.65,-79.38,"America/Toronto"],["Мехико","Mexico City","MX",19.43,-99.13,"America/Mexico_City"],["Сан-Паулу","Sao Paulo","BR",-23.55,-46.63,"America/Sao_Paulo"],["Сидней","Sydney","AU",-33.87,151.21,"Australia/Sydney"],["Мельбурн","Melbourne","AU",-37.81,144.96,"Australia/Melbourne"]];
+function cnorm(s){return String(s).toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9 ]+/g,' ').replace(/\s+/g,' ').trim()}
+function cityMethod(cc){return cc==='EG'?'egypt':cc==='SA'?'makkah':'mwl'}
+function cityOffline(q){var n=cnorm(q);if(n.length<2)return[];var out=[];
+  PCITIES.forEach(function(x){var a=cnorm(x[1]);if(a.indexOf(n)>=0)out.push({s:a.indexOf(n)===0?0:1,name:x[1],where:'',lat:x[2],lng:x[3],tz:x[4],cc:''})});
+  WX.concat(WC).forEach(function(x){var a=cnorm(x[0]),b=cnorm(x[1]),i=Math.min(a.indexOf(n)<0?99:a.indexOf(n),b.indexOf(n)<0?99:b.indexOf(n));
+    if(i<99)out.push({s:i===0?0:1,name:x[0],where:CCN[x[2]]||x[2],lat:x[3],lng:x[4],tz:x[5],cc:x[2]})});
+  var seen={};return out.filter(function(r){var k=cnorm(r.name)+Math.round(r.lat);if(seen[k])return false;seen[k]=1;return true}).sort(function(a,b){return a.s-b.s||a.name.length-b.name.length}).slice(0,8)}
+async function cityOnline(q){try{var ac=new AbortController(),t=setTimeout(function(){ac.abort()},4000);
+  var r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=8&language=ru&format=json&name='+encodeURIComponent(q),{signal:ac.signal});clearTimeout(t);if(!r.ok)return[];
+  var j=await r.json();return(j.results||[]).filter(function(x){return x.timezone&&isFinite(x.latitude)&&isFinite(x.longitude)}).map(function(x){return{name:x.name,where:[x.admin1,x.country].filter(Boolean).join(', '),lat:x.latitude,lng:x.longitude,tz:x.timezone,cc:x.country_code||''}})}catch(e){return[]}}
+async function cityFind(q){var on=await cityOnline(q),off=cityOffline(q),seen={};
+  return on.concat(off).filter(function(r){var k=cnorm(r.name)+Math.round(r.lat*2);if(seen[k])return false;seen[k]=1;return true}).slice(0,8)}
+async function cityAI(q){try{var sm=await claude.use('sample');
+  var r=await sm([{role:'user',content:'Найди город по запросу «'+String(q).slice(0,60)+'». Выведи ТОЛЬКО JSON-массив до 4 вариантов без пояснений: [{"n":"название по-русски","c":"страна по-русски","cc":"код страны ISO из двух букв","lat":число,"lng":число,"tz":"часовой пояс IANA, например Africa/Cairo"}]. Координаты центра города с точностью до 0.01. Если такого города нет, выведи [].'}],{cache:false});
+  var t=((r&&r.text)||'').replace(/```json|```/g,'').trim(),a=JSON.parse(t.slice(t.indexOf('['),t.lastIndexOf(']')+1));
+  return a.filter(function(x){if(!x||typeof x.n!=='string'||!isFinite(x.lat)||!isFinite(x.lng)||Math.abs(x.lat)>90||Math.abs(x.lng)>180)return false;try{new Intl.DateTimeFormat('en-US',{timeZone:x.tz});return true}catch(e){return false}})
+   .slice(0,4).map(function(x){return{name:x.n.slice(0,40),where:String(x.c||'')+' (по данным ИИ)',lat:+x.lat,lng:+x.lng,tz:x.tz,cc:String(x.cc||'')}})}catch(e){return[]}}
+async function citySearchUI(q0){
+  var r=await modal({title:'Поиск города',text:'Введи название города на русском или английском.',input:q0||'',buttons:[{label:'Отмена',val:null},{label:'Найти',val:'ok'}]});
+  if(r.val!=='ok')return;var q=r.text.trim();if(q.length<2){toast('Введи хотя бы 2 буквы');return}
+  toast('Ищу…');var res=await cityFind(q);pickCity(q,res,false)}
+async function pickCity(q,res,ai){
+  var bt=res.slice(0,8).map(function(x,i){return{label:x.name+(x.where?' · '+x.where:''),val:'r:'+i}});
+  if(window.claude&&!ai)bt.push({label:'Искать через ИИ',val:'ai'});
+  bt.push({label:'Новый поиск',val:'again'});bt.push({label:'Отмена',val:null});
+  var r=await modal({title:res.length?'Найдено: '+res.length:'Ничего не найдено',text:res.length?'Выбери свой город.':'Попробуй другое написание'+(window.claude&&!ai?' или нажми «Искать через ИИ».':'.'),col:1,buttons:bt});
+  if(!r.val)return;if(r.val==='again'){citySearchUI(q);return}
+  if(r.val==='ai'){toast('ИИ ищет город…');var a=await cityAI(q);pickCity(q,a,true);return}
+  var x=res[+r.val.slice(2)];if(!x)return;
+  try{localStorage.setItem('pcity',JSON.stringify({name:x.name,lat:x.lat,lng:x.lng,tz:x.tz,m:cityMethod(x.cc)}))}catch(e){}
+  prayerCard();prayerMenu()}
+/*CITYS-END*/
+/*QIBLA-START*/
+function qiblaCalc(c){var R=Math.PI/180,f1=c.lat*R,f2=21.4225*R,dl=(39.8262-c.lng)*R;
+  var y=Math.sin(dl)*Math.cos(f2),x=Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
+  var a=Math.sin((f2-f1)/2),d=Math.sin(dl/2),h=a*a+Math.cos(f1)*Math.cos(f2)*d*d;
+  return{deg:(Math.atan2(y,x)/R+360)%360,km:2*6371*Math.asin(Math.sqrt(h))}}
+var QSIDES=['север','северо-восток','восток','юго-восток','юг','юго-запад','запад','северо-запад'];
+function qside(b){return QSIDES[Math.round(b/45)%8]}
+function qiblaView(c){
+  var q=qiblaCalc(c),old=document.getElementById('qbv');if(old)old.remove();
+  var o=document.createElement('div');o.id='qbv';
+  o.style.cssText='position:fixed;inset:0;z-index:80;background:#0c0d13;color:#f2f3f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;font:16px/1.4 system-ui,sans-serif;text-align:center;overflow:auto';
+  var tk='';for(var i=0;i<72;i++){var big=i%9===0;tk+='<line x1="150" y1="12" x2="150" y2="'+(big?26:18)+'" transform="rotate('+(i*5)+' 150 150)" stroke="#5b6078" stroke-width="'+(big?2.5:1)+'"/>'}
+  var tx=function(x,y,t,col){return '<text x="'+x+'" y="'+y+'" text-anchor="middle" fill="'+col+'" font-size="20" font-weight="700">'+t+'</text>'};
+  var svg='<svg viewBox="0 0 300 300" style="width:min(78vw,330px);height:auto" aria-label="Компас с направлением на Мекку"><defs><linearGradient id="qg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>'+
+   '<g id="qd" style="transform-origin:150px 150px;transform-box:view-box;transition:transform .25s"><circle cx="150" cy="150" r="140" fill="#12141d" stroke="#262a38" stroke-width="2"/>'+tk+
+   tx(150,58,'С','#ff6b6b')+tx(150,252,'Ю','#9aa0b4')+tx(48,157,'З','#9aa0b4')+tx(252,157,'В','#9aa0b4')+
+   '<g transform="rotate('+q.deg.toFixed(1)+' 150 150)"><path d="M150 76L163 150H137z" fill="url(#qg)"/><rect x="138" y="52" width="24" height="24" rx="3" fill="#000" stroke="#c9a227" stroke-width="2"/><path d="M138 60h24" stroke="#c9a227" stroke-width="3"/></g></g><circle cx="150" cy="150" r="7" fill="#fff"/></svg>';
+  o.innerHTML='<div style="font-weight:700;font-size:20px">Кибла · '+String(c.name).replace(/[<>&]/g,'')+'</div>'+svg+
+   '<div style="font-size:22px;font-weight:700">'+Math.round(q.deg)+'° · '+qside(q.deg)+'</div>'+
+   '<div style="color:#9aa0b4">До Мекки примерно '+Math.round(q.km).toLocaleString('ru-RU')+' км. Угол считается от севера по часовой стрелке.</div>'+
+   '<div id="qst" style="color:#9aa0b4;max-width:420px">На компьютере компаса нет: север сверху, стрелка с чёрным кубом показывает на Мекку.</div>'+
+   '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="qcp" style="display:none;padding:12px 18px;border-radius:14px;font:inherit;font-weight:700;color:#fff;background:linear-gradient(135deg,#38bdf8,#6d5dfc 55%,#c04cf0);cursor:pointer">Включить компас</button><button id="qx" style="padding:12px 18px;border-radius:14px;font:inherit;font-weight:700;color:#f2f3f8;border:1px solid #262a38;cursor:pointer">Закрыть</button></div>';
+  document.body.appendChild(o);
+  function hd(e){if(typeof e.webkitCompassHeading==='number')return e.webkitCompassHeading;if(e.alpha!=null&&(e.absolute||e.type==='deviceorientationabsolute'))return 360-e.alpha;return null}
+  function on(e){var h=hd(e);if(h===null)return;var d=document.getElementById('qd');if(d)d.style.transform='rotate('+(-h)+'deg)';
+    var s=document.getElementById('qst');if(s)s.textContent='Компас работает: держи телефон ровно и поворачивай его, пока стрелка не окажется вверху.'}
+  function start(){addEventListener('deviceorientationabsolute',on,true);addEventListener('deviceorientation',on,true)}
+  function stop(){removeEventListener('deviceorientationabsolute',on,true);removeEventListener('deviceorientation',on,true)}
+  document.getElementById('qx').onclick=function(){stop();o.remove()};
+  var DO=window.DeviceOrientationEvent;
+  if(DO&&typeof DO.requestPermission==='function'){var b=document.getElementById('qcp');b.style.display='';b.onclick=function(){DO.requestPermission().then(function(r){if(r==='granted'){start();b.style.display='none'}}).catch(function(){})}}
+  else if(DO)start()}
+/*QIBLA-END*/
+/*TRASH-START*/
+function titleFrom(v){var t=String(v),re=/^\s*(?:(?:ва|уа|wa)\s*алейкум(?:у)?\s*(?:ассалям|салям|салам)(?:у)?|ассаляму\s*алейкум(?:\s*ва\s*рахматуллахи(?:\s*ва\s*баракатух)?)?|(?:салам|салям)\s*алейкум|салам|салям|ассалям)[\s,.!:;\-—]*/i;
+  for(var i=0;i<3;i++){var n=t.replace(re,'');if(n===t)break;t=n}
+  t=t.trim();if(!t)return'';return t.length>30?t.slice(0,30)+'…':t}
+function fixTitles(){S.chats.concat(S.trash||[]).forEach(function(c){var m0=c.msgs[0];if(m0&&m0.role==='assistant'&&m0.content==='Привет! Чем могу помочь?')m0.content='Ассаляму алейкум! Чем могу помочь?'});
+  S.chats.forEach(function(c){if(c.custom||c.title==='Новый чат'||/^(Проект|Картинка): /.test(c.title))return;
+  if(titleFrom(c.title)===c.title)return;
+  var m=c.msgs.filter(function(x){return x.role==='user'&&titleFrom(x.content)!==''})[0];c.title=m?titleFrom(m.content):'Новый чат'})}
+fixTitles();
+var LANGS={ar:['арабский','арабской вязью с огласовками'],en:['английский',''],tr:['турецкий',''],de:['немецкий',''],fr:['французский',''],es:['испанский',''],it:['итальянский',''],zh:['китайский','иероглифами'],fa:['персидский','персидским письмом']};
+function tutorLang(c){return c.lang||(c.arabic?'ar':'')}
+function langPrompt(k){var L=LANGS[k];if(!L)return '';
+  return ' РЕЖИМ РЕПЕТИТОРА ЯЗЫКА: '+L[0].toUpperCase()+'. Ты терпеливый репетитор: учишь '+L[0]+' язык русскоговорящего новичка. Веди по одному шагу. '+
+  'Новое слово подавай так: слово на изучаемом языке'+(L[1]?' ('+L[1]+')':'')+', транскрипция русскими буквами для произношения, перевод, короткое предложение-пример с переводом. '+
+  'После слова задай одно маленькое задание (перевести слово или составить мини-фразу) и жди ответ. '+
+  'Проверяя ответ, скажи верно или нет, коротко объясни ошибку, исправь и дай следующий шаг. '+
+  'Выбирай полезные слова: приветствия, семья, дом, еда, числа, путешествия, учёба, повседневные фразы. Повторяй пройденные слова вразнобой, чтобы закрепить. '+
+  'Если не уверен в слове, написании или произношении, скажи об этом и ничего не выдумывай. Религиозные тексты не цитируй, пока не попросят, а когда попросят, предупреди, что точный текст нужно сверить по первоисточнику или у учителя. Пиши коротко.'}
+async function tutorMenu(c){var cu=tutorLang(c),bt=Object.keys(LANGS).map(function(k){return{label:(k===cu?'✓ ':'')+LANGS[k][0],val:'l:'+k}});
+  if(cu)bt.push({label:'Выключить репетитора',val:'off',cls:'danger'});bt.push({label:'Отмена',val:null});
+  var r=await modal({title:'Репетитор языков',text:cu?'Сейчас: '+LANGS[cu][0]+'.':'Выбери язык, который хочешь учить.',col:1,buttons:bt});
+  if(!r.val)return;
+  if(r.val==='off'){c.lang='';c.arabic=false}else{c.lang=r.val.slice(2);c.arabic=false;c.teacher=false;clearPend()}
+  var on=tutorLang(c);
+  c.msgs.push({role:'assistant',content:on?'Режим репетитора включён: '+LANGS[on][0]+' язык. Нажми «Новое слово» или напиши, что хочешь выучить.':'Режим репетитора выключен.',t:Date.now(),proj:1});
+  c.updated=Date.now();save();renderList();if(S.cur===c.id)renderChat();toast(on?'Репетитор: '+LANGS[on][0]:'Репетитор выключен')}
+[].forEach.call($('arc').children,function(b){b.onclick=function(){var c=cur();if(!c||c.busy||c.closed)return;inp.value=b.dataset.t;send()}});
+
+function fdate(t){return new Date(t).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}
+function transcript(c){return c.msgs.map(function(m){return (m.role==='user'?'Ты':'ChatJAMI')+' ('+hm(m.t||c.updated)+'): '+String(m.content||'')}).join('\n\n')}
+async function trashMenu(){
+  if(!S.trash.length){toast('Корзина пуста');return}
+  var bt=S.trash.slice(0,10).map(function(c,i){return{label:c.title+' · '+fdate(c.deleted),val:'t:'+i}});bt.push({label:'Закрыть',val:null});
+  var r=await modal({title:'Корзина',text:'Удалённые чаты хранятся 30 дней. Выбери чат.',col:1,buttons:bt});
+  if(r.val&&r.val.indexOf('t:')===0)trashItem(S.trash[+r.val.slice(2)])}
+async function trashItem(c){
+  if(!c)return;
+  var r=await modal({title:c.title,text:'Удалён '+fdate(c.deleted)+'. Сообщений: '+c.msgs.length+'.',col:1,buttons:[{label:'Восстановить',val:'res'},{label:'Показать переписку',val:'show'},{label:'Удалить навсегда',val:'del',cls:'danger'},{label:'Назад',val:'back'}]});
+  if(r.val==='res'){S.trash=S.trash.filter(function(x){return x!==c});delete c.deleted;S.chats.push(c);save();renderList();toast('Чат восстановлен')}
+  else if(r.val==='show'){await modal({title:c.title,text:transcript(c),buttons:[{label:'Закрыть',val:null}]});trashItem(c)}
+  else if(r.val==='del'){S.trash=S.trash.filter(function(x){return x!==c});save();renderList();toast('Удалено навсегда')}
+  else if(r.val==='back')trashMenu()}
+function memoryText(cur){
+  var all=S.chats.filter(function(c){return c!==cur&&c.msgs.length>1}).map(function(c){return{c:c,t:c.updated,gone:false}})
+    .concat(S.trash.map(function(c){return{c:c,t:c.deleted||c.updated,gone:true}})).sort(function(a,b){return b.t-a.t});
+  var out='',max=5500;
+  for(var i=0;i<all.length&&out.length<max;i++){var c=all[i].c,part='=== Чат «'+c.title+'»'+(all[i].gone?' (удалён)':'')+', '+fdate(c.updated)+'\n';
+    c.msgs.slice(-12).forEach(function(m){part+=(m.role==='user'?'Пользователь: ':'ChatJAMI: ')+String(m.content||'').replace(/\s+/g,' ').slice(0,400)+'\n'});
+    out+=part}
+  return out.slice(0,max)}
+function toggleMem(){S.mem=!S.mem;save();toast(S.mem?'Память включена: ИИ помнит прошлые чаты, в том числе удалённые':'Память выключена')}
+/*TRASH-END*/
+/*CALC-START*/
+function calcEval(src){
+  var s=String(src).replace(/[−–—]/g,'-').replace(/[×·]/g,'*').replace(/÷/g,'/').replace(/\s+/g,''),i=0;
+  function pk(){return s[i]}
+  function ab(a){return a<0n?-a:a}
+  function gcd(a,b){a=ab(a);b=ab(b);while(b){var t=a%b;a=b;b=t}return a||1n}
+  function mk(n,d){if(d<0n){n=-n;d=-d}var g=gcd(n,d);return{n:n/g,d:d/g}}
+  function chk(f){if(f.n.toString().length>300||f.d.toString().length>300)throw 1;return f}
+  function add(a,b){return chk(mk(a.n*b.d+b.n*a.d,a.d*b.d))}
+  function mul(a,b){return chk(mk(a.n*b.n,a.d*b.d))}
+  function div(a,b){if(b.n===0n)throw 1;return chk(mk(a.n*b.d,a.d*b.n))}
+  function neg(a){return{n:-a.n,d:a.d}}
+  function num(){var m=/^\d+(?:[.,]\d+)?/.exec(s.slice(i));if(!m)throw 1;i+=m[0].length;var t=m[0].replace(',','.').split('.'),f=t[1]||'';return mk(BigInt(t[0]+f),10n**BigInt(f.length))}
+  function atom(){if(pk()==='('){i++;var v=expr();if(pk()!==')')throw 1;i++;return v}return num()}
+  function power(){var b=atom();
+    if(pk()==='^'){i++;var e=unary();if(e.d!==1n||ab(e.n)>100n)throw 1;var k=Number(ab(e.n)),r={n:1n,d:1n};for(var j=0;j<k;j++)r=mul(r,b);return e.n<0n?div({n:1n,d:1n},r):r}
+    return b}
+  function unary(){if(pk()==='-'){i++;return neg(unary())}if(pk()==='+'){i++;return unary()}return power()}
+  function term(){var v=unary();for(;;){var c=pk();if(c==='*'){i++;v=mul(v,unary())}else if(c==='/'){i++;v=div(v,unary())}else if(c==='('){v=mul(v,unary())}else break}return v}
+  function expr(){var v=term();for(;;){var c=pk();if(c==='+'){i++;v=add(v,term())}else if(c==='-'){i++;v=add(v,neg(term()))}else break}return v}
+  try{var r=expr();return i===s.length?r:null}catch(e){return null}}
+function calcFmt(f){
+  var ng=f.n<0n,n=ng?-f.n:f.n;
+  if(f.d===1n)return f.n.toString();
+  var ip=n/f.d,rem=n%f.d,fr='';
+  for(var k=0;k<10;k++){rem*=10n;fr+=(rem/f.d).toString();rem%=f.d}
+  var exact=rem===0n;fr=fr.replace(/0+$/,'');
+  return f.n+'/'+f.d+' '+(exact?'=':'≈')+' '+(ng?'-':'')+ip+(fr?','+fr:'')}
+var CALC_RUN=/[\d(][\d\s+\-−–×÷*\/^().,·]*[\d)]/g,CALC_OP=/[+\-−–×÷*\/^·]/;
+function calcRuns(line){var o=[],m;CALC_RUN.lastIndex=0;
+  while((m=CALC_RUN.exec(line))){var e=m[0].trim();
+    if(!CALC_OP.test(e.replace(/^[-−–]/,'')))continue;
+    if(/^\d{1,4}[-.\/]\d{1,2}[-.\/]\d{1,4}$/.test(e))continue;
+    o.push(e)}
+  return o}
+function calcFind(text){
+  var L=String(text).replace(/\*\*|`/g,'').split('\n'),out=[],bar=/^\s*[─━—–_\-]{5,}\s*$/;
+  function best(l){var r=calcRuns(l).sort(function(a,b){return b.length-a.length});return r[0]||null}
+  for(var i=1;i<L.length-1;i++){
+    if(bar.test(L[i])){var a=best(L[i-1]),b=best(L[i+1]);
+      if(a&&b){out.push('('+a+')/('+b+')');L[i-1]=L[i]=L[i+1]=''}}}
+  L.forEach(function(l){calcRuns(l).forEach(function(e){out.push(e)})});
+  return out}
+function calcFor(c){
+  if(!c||!c.teacher)return [];
+  var seen={},cands=[];
+  c.msgs.slice(-8).forEach(function(m){if(typeof m.content!=='string')return;
+    calcFind(m.content).forEach(function(e){e=e.replace(/\s+/g,' ');var k=e.replace(/\s/g,'');
+      if(seen[k]||e.length>150)return;seen[k]=1;var f=calcEval(e);if(!f)return;cands.push({e:e,r:calcFmt(f),w:k.length})})});
+  cands.sort(function(a,b){return b.w-a.w});
+  return cands.slice(0,3).map(function(x){return{e:x.e,r:x.r}})}
+function calcRules(list){
+  if(!list||!list.length)return '';
+  return ' ПРОВЕРЕННЫЕ РАСЧЁТЫ: калькулятор приложения посчитал точно, ему доверяй больше, чем своему счёту в уме: '+list.map(function(x,i){return (i+1)+') '+x.e+' = '+x.r}).join('; ')+'. Используй их только чтобы проверять ответы пользователя и вести к решению. Не называй эти значения, пока пользователь сам не получил верный ответ. Ответ пользователя считай верным, если он равен значению или правильно округлён (например до сотых); иначе скажи «Нет, не так».'}
+/*CALC-END*/
+/*TEACH-START*/
+var PEND=null,IMG={};
+function showPend(){$('pv').style.display='flex';$('pvi').src=PEND.thumb}
+function clearPend(){PEND=null;var p=$('pv');if(p)p.style.display='none'}
+function pickPhoto(file){
+  if(!file)return;
+  if(!/^image\//.test(file.type)){toast('Выбери фото');return}
+  var fr=new FileReader();
+  fr.onerror=function(){toast('Не удалось прочитать фото')};
+  fr.onload=function(){var im=new Image();
+    im.onerror=function(){toast('Не удалось открыть фото. Подойдёт JPG или PNG.')};
+    im.onload=function(){
+      function enc(max,q){var k=Math.min(1,max/Math.max(im.width,im.height)),cn=document.createElement('canvas');cn.width=Math.max(1,Math.round(im.width*k));cn.height=Math.max(1,Math.round(im.height*k));cn.getContext('2d').drawImage(im,0,0,cn.width,cn.height);return cn.toDataURL('image/jpeg',q)}
+      PEND={type:'image/jpeg',data:enc(1280,.8).split(',')[1],thumb:enc(220,.6)};showPend()};
+    im.src=fr.result};
+  fr.readAsDataURL(file)}
+function toggleTeacher(c){c.teacher=!c.teacher;if(c.teacher){c.arabic=false;c.lang=''}clearPend();
+  c.msgs.push({role:'assistant',content:c.teacher?'Режим учителя включён. Пришли задачу текстом или фото, а я помогу разобраться и подскажу путь, но готовый ответ не назову.':'Режим учителя выключен.',t:Date.now(),proj:1});
+  c.updated=Date.now();save();renderList();if(S.cur===c.id)renderChat();toast(c.teacher?'Режим учителя включён':'Режим учителя выключен')}
+$('attf').onchange=function(){var f=this.files&&this.files[0];this.value='';pickPhoto(f)};
+$('pvx').onclick=clearPend;$('clb').onclick=newChat;
+/*TEACH-END*/
+/*MD-START*/
+function mdInline(el,s){
+  var re=/(`[^`\n]+`|\*\*[^*\n]+?\*\*|(?<![\w*])\*[^*\s][^*\n]*?\*(?![\w*]))/g,last=0,m;
+  while((m=re.exec(s))){
+    if(m.index>last)el.appendChild(document.createTextNode(s.slice(last,m.index)));
+    var t=m[0],n;
+    if(t[0]==='`'){n=document.createElement('code');n.className='mc';n.textContent=t.slice(1,-1)}
+    else if(t.slice(0,2)==='**'){n=document.createElement('b');n.textContent=t.slice(2,-2)}
+    else{n=document.createElement('i');n.textContent=t.slice(1,-1)}
+    el.appendChild(n);last=re.lastIndex}
+  if(last<s.length)el.appendChild(document.createTextNode(s.slice(last)))}
+function mdBlocks(text){
+  var L=String(text).replace(/\r/g,'').split('\n'),out=[],i=0,m;
+  while(i<L.length){
+    var ln=L[i];
+    if((m=ln.match(/^\s*```\s*([\w+#-]*)/))){var code=[];i++;while(i<L.length&&!/^\s*```/.test(L[i])){code.push(L[i]);i++}i++;out.push({t:'code',lang:m[1],text:code.join('\n')});continue}
+    if(/^\s*$/.test(ln)){i++;continue}
+    if((m=ln.match(/^\s{0,3}#{1,4}\s+(.*)$/))){out.push({t:'h',text:m[1]});i++;continue}
+    if(/^\s*[-*•]\s+/.test(ln)){var it=[];while(i<L.length&&(m=L[i].match(/^\s*[-*•]\s+(.*)$/))){it.push(m[1]);i++}out.push({t:'ul',items:it});continue}
+    if(/^\s*\d+[.)]\s+/.test(ln)){var it2=[];while(i<L.length&&(m=L[i].match(/^\s*\d+[.)]\s+(.*)$/))){it2.push(m[1]);i++}out.push({t:'ol',items:it2});continue}
+    var p=[];
+    while(i<L.length&&!/^\s*$/.test(L[i])&&!/^\s*```/.test(L[i])&&!/^\s{0,3}#{1,4}\s/.test(L[i])&&!/^\s*([-*•]|\d+[.)])\s+/.test(L[i])){p.push(L[i]);i++}
+    if(!p.length){p.push(L[i]);i++}
+    out.push({t:'p',lines:p})}
+  return out}
+function mdLines(el,lines){lines.forEach(function(l,k){if(k)el.appendChild(document.createElement('br'));mdInline(el,l)})}
+function md(el,text){
+  el.textContent='';el.classList.remove('blk');
+  var B=mdBlocks(text||'');if(!B.length)return;
+  if(B.length===1&&B[0].t==='p'){mdLines(el,B[0].lines);return}
+  el.classList.add('blk');
+  B.forEach(function(b){var n;
+    if(b.t==='p'){n=document.createElement('div');n.className='mp';mdLines(n,b.lines)}
+    else if(b.t==='h'){n=document.createElement('div');n.className='mh';mdInline(n,b.text)}
+    else if(b.t==='ul'||b.t==='ol'){n=document.createElement(b.t);b.items.forEach(function(x){var li=document.createElement('li');mdInline(li,x);n.appendChild(li)})}
+    else{n=document.createElement('div');n.className='cb';
+      var h=document.createElement('div');h.className='ch';var lg=document.createElement('span');lg.textContent=b.lang||'код';h.appendChild(lg);
+      var cbn=document.createElement('button');cbn.innerHTML=IC.copy+'Копировать';cbn.onclick=function(){copyText(b.text)};h.appendChild(cbn);
+      var pre=document.createElement('pre'),cd=document.createElement('code');cd.textContent=b.text;pre.appendChild(cd);n.appendChild(h);n.appendChild(pre)}
+    el.appendChild(n)})}
+/*MD-END*/
+/*ACT-START*/
+function copyText(s){var done=function(){toast('Скопировано')};
+  function fb(){var ta=document.createElement('textarea');ta.value=s;ta.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(_){toast('Не удалось скопировать')}ta.remove()}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(done,fb);else fb()}
+function regen(c){var l=c.msgs[c.msgs.length-1],p=c.msgs[c.msgs.length-2];
+  if(c.busy||!l||l.role!=='assistant'||!p||p.role!=='user')return;
+  c.regen={m:l,ins:c.ins||0};if(l.hit)c.ins=Math.max(0,(c.ins||0)-1);c.msgs.pop();renderChat();reply(c)}
+function actRow(m){var c=cur(),r=document.createElement('div');r.className='act';
+  var b=document.createElement('button');b.innerHTML=IC.copy+(m.project?'Копировать ссылку':'Копировать');b.onclick=function(){copyText(m.project?m.project.url:m.content)};r.appendChild(b);
+  var l=c&&c.msgs[c.msgs.length-1]===m,p=c&&c.msgs[c.msgs.length-2];
+  if(l&&p&&p.role==='user'&&!c.busy&&!c.closed&&!m.proj){var g=document.createElement('button');g.innerHTML=IC.ref+'Повторить';g.onclick=function(){var cc=cur();if(cc)regen(cc)};r.appendChild(g)}
+  return r}
+/*ACT-END*/
+function syncBtn(){}
+function dark(){var t=root.getAttribute('data-theme');return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches}
+function sync(){document.querySelectorAll('.th').forEach(function(b){b.innerHTML=dark()?IC.sun:IC.moon})}
+try{var sv=localStorage.getItem('theme');if(sv)root.setAttribute('data-theme',sv)}catch(_){}
+document.querySelectorAll('.th').forEach(function(b){b.onclick=function(){var n=dark()?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(_){}sync()}});
+/*SAND-START*/
+var cv=$('sand'),cx=cv.getContext('2d'),sandOn=true;try{sandOn=localStorage.getItem('sand')!=='off'}catch(_){}
+var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var HUES=[350,18,42,95,160,190,215,265,300],D=[],W=0,H=0,raf=0,lastT=0,rz;
+function sandInit(){
+  var r=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;var G=Math.max(22,Math.min(30,Math.round(W/14)));
+  cv.width=Math.round(W*r);cv.height=Math.round(H*r);cx.setTransform(r,0,0,r,0,0);
+  D=[];for(var y=G/2;y<H+G;y+=G)for(var x=G/2;x<W+G;x+=G)D.push({x:x,y:y,c:'hsl('+HUES[Math.floor(Math.random()*HUES.length)]+',72%,58%)'});
+  sandDraw(0)}
+function sandDraw(t){
+  cx.clearRect(0,0,W,H);
+  var sg=Math.max(W,H)*.28,s2=2*sg*sg;
+  var ax=W*(.5+.42*Math.sin(t*.7)),ay=H*(.28+.16*Math.sin(t*.5+1)),bx=W*(.5-.42*Math.sin(t*.7+.4)),by=H*(.72+.16*Math.sin(t*.45));
+  for(var i=0;i<D.length;i++){var p=D[i],d1=(p.x-ax)*(p.x-ax)+(p.y-ay)*(p.y-ay),d2=(p.x-bx)*(p.x-bx)+(p.y-by)*(p.y-by);
+    var I=Math.max(Math.exp(-d1/s2),Math.exp(-d2/s2));
+    cx.globalAlpha=.2+.8*I;cx.fillStyle=p.c;cx.beginPath();cx.arc(p.x,p.y,1.3+1.5*I,0,6.2832);cx.fill()}
+  cx.globalAlpha=1}
+function sandLoop(ts){raf=requestAnimationFrame(sandLoop);if(ts-lastT<33)return;lastT=ts;sandDraw(ts/1000)}
+function sandRun(){cancelAnimationFrame(raf);raf=0;if(document.hidden||!sandOn||still||bgUrl)return;raf=requestAnimationFrame(sandLoop)}
+addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){sandInit();sandRun()},200)});
+document.addEventListener('visibilitychange',sandRun);
+$('sandbtn').style.opacity=sandOn?1:.45;
+$('sandbtn').onclick=function(){sandOn=!sandOn;try{localStorage.setItem('sand',sandOn?'on':'off')}catch(_){}$('sandbtn').style.opacity=sandOn?1:.45;sandRun();toast(sandOn?'Анимация фона включена':'Анимация фона выключена')};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){sync()});
+sandInit();
+/*SAND-END*/
+/*BG-START*/
+var bgUrl=null;
+function setBg(u,cb){var el=$('bgimg');
+  if(!u){bgUrl=null;el.innerHTML='';el.style.display='none';cv.style.display='';document.body.classList.remove('hasbg');sandRun();return}
+  var im=new Image();im.alt='';
+  im.onload=function(){bgUrl=u;el.innerHTML='';el.appendChild(im);var dm=document.createElement('div');dm.className='dim';el.appendChild(dm);el.style.display='block';cv.style.display='none';document.body.classList.add('hasbg');sandRun();if(cb)cb(true)};
+  im.onerror=function(){if(cb)cb(false)};
+  im.src=u}
+function idb(){return new Promise(function(res,rej){if(!window.indexedDB)return rej();var q=indexedDB.open('ccai',1);q.onupgradeneeded=function(){q.result.createObjectStore('kv')};q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)}})}
+function idbGet(k){return idb().then(function(db){return new Promise(function(res,rej){var r=db.transaction('kv').objectStore('kv').get(k);r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}})})}
+function idbSet(k,v){return idb().then(function(db){return new Promise(function(res,rej){var t=db.transaction('kv','readwrite'),s=t.objectStore('kv');if(v===null)s.delete(k);else s.put(v,k);t.oncomplete=res;t.onerror=function(){rej(t.error)}})})}
+async function bgMenu(){
+  var b=[{label:'Загрузить картинку или GIF',file:true}];if(bgUrl)b.push({label:'Убрать свой фон',val:'rm',cls:'danger'});b.push({label:'Отмена',val:null});
+  var r=await modal({title:'Фон приложения',col:1,buttons:b});
+  if(r.val==='file'&&r.file)loadBg(r.file);
+  else if(r.val==='rm'){setBg(null);idbSet('bg',null).catch(function(){});toast('Фон убран')}}
+$('bgbtn').onclick=bgMenu;
+function loadBg(f){
+  if(!f)return;toast('Читаю файл…');
+  if(!/^image\//.test(f.type)&&!/\.(gif|png|jpe?g|webp)$/i.test(f.name||'')){toast('Выбери картинку или GIF');return}
+  if(f.size>8*1024*1024){toast('Файл слишком большой, до 8 МБ');return}
+  var fr=new FileReader();
+  fr.onerror=function(){toast('Не удалось прочитать файл')};
+  fr.onload=function(){var u=fr.result;if(u.indexOf('data:image')!==0)u='data:'+(f.type||'image/gif')+u.slice(u.indexOf(';'));
+    setBg(u,function(ok){if(!ok){toast('Не удалось показать файл. Нужен другой GIF или картинка.');return}
+      idbSet('bg',u).then(function(){toast('Фон установлен')}).catch(function(){toast('Фон установлен, но не сохранится после закрытия страницы')})})};
+  fr.readAsDataURL(f)}
+try{idbGet('bg').then(function(u){if(u)setBg(u)}).catch(function(){})}catch(_){}
+/*BG-END*/
+sync();
+sandRun();
+renderList();
+if(!S.chats.length)newChat();else if(cur())open(S.cur);else show('listv');
+if('serviceWorker' in navigator)addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+</script>
+</body>
 </html>
